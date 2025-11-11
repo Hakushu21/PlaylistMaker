@@ -9,7 +9,7 @@
     <color name="button_background">#FFFFFFFF</color>
     <color name="header_text">#FFFFFFFF</color>
 
-    <color name="search_background">#FF121212</color>
+    <color name="search_background">#FF1A1B22</color>
     <color name="search_field_background">#FFFFFFFF</color>
     <color name="search_hint">#FF000000</color>
     <color name="search_text">#FF000000</color>

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatDelegate
@@ -18,7 +19,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
-        sharedPreferences = getSharedPreferences("theme_prefs", MODE_PRIVATE)
+        sharedPreferences = getSharedPreferences(MainActivity.THEME_PREFS_NAME, MODE_PRIVATE)
 
         val backButton = findViewById<ImageView>(R.id.back_button)
         backButton.setOnClickListener {
@@ -63,7 +64,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun saveThemeState(isDarkTheme: Boolean) {
         sharedPreferences.edit()
-            .putBoolean("dark_theme", isDarkTheme)
+            .putBoolean(MainActivity.DARK_THEME_KEY, isDarkTheme)
             .apply()
     }
 
@@ -86,6 +87,8 @@ class SettingsActivity : AppCompatActivity() {
         try {
             startActivity(emailIntent)
         } catch (e: Exception) {
+            Log.e("SettingsActivity", "No email app found", e)
+
             val fallbackIntent = Intent(Intent.ACTION_SEND)
             fallbackIntent.type = "message/rfc822"
             fallbackIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf(getString(R.string.support_email)))
@@ -95,7 +98,7 @@ class SettingsActivity : AppCompatActivity() {
             try {
                 startActivity(fallbackIntent)
             } catch (ex: Exception) {
-
+                Log.e("SettingsActivity", "No email app available", ex)
             }
         }
     }
@@ -107,7 +110,7 @@ class SettingsActivity : AppCompatActivity() {
         try {
             startActivity(agreementIntent)
         } catch (e: Exception) {
-
+            Log.e("SettingsActivity", "No browser app found", e)
         }
     }
 }

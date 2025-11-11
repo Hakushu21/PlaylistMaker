@@ -58,6 +58,7 @@
 
     </LinearLayout>
 
+    <!-- Поделиться приложением -->
     <LinearLayout
         android:id="@+id/share_app_layout"
         android:layout_width="match_parent"
@@ -82,7 +83,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_share_24"
-            android:tint="?android:attr/textColorPrimary" />
+            android:tint="@color/settings_icon" />
 
     </LinearLayout>
 
@@ -110,7 +111,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_support_24"
-            android:tint="?android:attr/textColorPrimary" />
+            android:tint="@color/settings_icon" />
 
     </LinearLayout>
 
@@ -138,8 +139,6 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_agreement_24"
-            android:tint="?android:attr/textColorPrimary" />
-
+            android:tint="@color/settings_icon" />
     </LinearLayout>
-
 </LinearLayout>

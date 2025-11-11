@@ -2,13 +2,12 @@ package com.example.playlistmaker
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.widget.doOnTextChanged
 
 class SearchActivity : AppCompatActivity() {
 
@@ -18,19 +17,6 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var emptyStateText: TextView
 
     private var searchQuery: String = ""
-
-    private val searchTextWatcher = object : TextWatcher {
-        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-        }
-
-        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-            searchQuery = s?.toString() ?: ""
-            clearButton.visibility = if (s.isNullOrEmpty()) TextView.GONE else TextView.VISIBLE
-        }
-
-        override fun afterTextChanged(s: Editable?) {
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,7 +54,10 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun setupSearchField() {
-        searchEditText.addTextChangedListener(searchTextWatcher)
+        searchEditText.doOnTextChanged { text, _, _, _ ->
+            searchQuery = text?.toString() ?: ""
+            clearButton.visibility = if (text.isNullOrEmpty()) TextView.GONE else TextView.VISIBLE
+        }
 
         searchEditText.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus && searchEditText.text.isNullOrEmpty()) {
@@ -108,18 +97,17 @@ class SearchActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putString("SEARCH_QUERY", searchQuery)
+        outState.putString(SEARCH_QUERY_KEY, searchQuery)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
-        val savedSearchQuery = savedInstanceState.getString("SEARCH_QUERY", "")
+        val savedSearchQuery = savedInstanceState.getString(SEARCH_QUERY_KEY, "")
         searchEditText.setText(savedSearchQuery)
         clearButton.visibility = if (savedSearchQuery.isEmpty()) TextView.GONE else TextView.VISIBLE
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        searchEditText.removeTextChangedListener(searchTextWatcher)
+    companion object {
+        private const val SEARCH_QUERY_KEY = "SEARCH_QUERY"
     }
 }

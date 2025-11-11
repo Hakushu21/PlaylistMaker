@@ -14,9 +14,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
-        sharedPreferences = getSharedPreferences("theme_prefs", MODE_PRIVATE)
-        val isDarkTheme = sharedPreferences.getBoolean("dark_theme", false)
+        sharedPreferences = getSharedPreferences(THEME_PREFS_NAME, MODE_PRIVATE)
+        val isDarkTheme = sharedPreferences.getBoolean(DARK_THEME_KEY, false)
         val mode = if (isDarkTheme) {
             AppCompatDelegate.MODE_NIGHT_YES
         } else {
@@ -43,5 +42,10 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, SettingsActivity::class.java)
             startActivity(intent)
         }
+    }
+
+    companion object {
+        const val THEME_PREFS_NAME = "theme_prefs"
+        const val DARK_THEME_KEY = "dark_theme"
     }
 }
