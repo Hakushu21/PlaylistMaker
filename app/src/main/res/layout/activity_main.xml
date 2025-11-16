@@ -32,21 +32,63 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/search_button"
-            style="@style/MainButtonStyle"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_margin="@dimen/button_margin"
             android:text="@string/search"
-            app:icon="@drawable/ic_search_24" />
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            app:icon="@drawable/ic_search_24"
+            app:iconGravity="textStart"
+            app:iconPadding="@dimen/icon_padding"
+            app:iconTint="@color/black"
+            app:cornerRadius="@dimen/corner_radius"
+            android:backgroundTint="@color/button_background"
+            android:textColor="@color/black"
+            android:stateListAnimator="@null" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/media_library_button"
-            style="@style/MainButtonStyle"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_margin="@dimen/button_margin"
             android:text="@string/media_library"
-            app:icon="@drawable/ic_library_24" />
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            app:icon="@drawable/ic_library_24"
+            app:iconGravity="textStart"
+            app:iconPadding="@dimen/icon_padding"
+            app:iconTint="@color/black"
+            app:cornerRadius="@dimen/corner_radius"
+            android:backgroundTint="@color/button_background"
+            android:textColor="@color/black"
+            android:stateListAnimator="@null" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/settings_button"
-            style="@style/MainButtonStyle"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_margin="@dimen/button_margin"
             android:text="@string/settings"
-            app:icon="@drawable/ic_settings_24" />
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            app:icon="@drawable/ic_settings_24"
+            app:iconGravity="textStart"
+            app:iconPadding="@dimen/icon_padding"
+            app:iconTint="@color/black"
+            app:cornerRadius="@dimen/corner_radius"
+            android:backgroundTint="@color/button_background"
+            android:textColor="@color/black"
+            android:stateListAnimator="@null" />
 
     </LinearLayout>
 
