@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="MainButtonStyle">
+    <style name="MainButtonStyle" parent="Widget.MaterialComponents.Button.UnelevatedButton">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">0dp</item>
         <item name="android:layout_weight">1</item>
@@ -19,6 +19,6 @@
 
     <style name="ShapeAppearanceOverlay.SearchBox" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">@dimen/corner_radius</item>
+        <item name="cornerSize">8dp</item>
     </style>
 </resources>
