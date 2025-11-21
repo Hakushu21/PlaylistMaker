@@ -6,4 +6,8 @@
     <dimen name="item_height">61dp</dimen>
     <dimen name="spacing_24">24dp</dimen>
     <dimen name="spacing_16">16dp</dimen>
+
+    <dimen name="main_button_text_size">22sp</dimen>
+    <dimen name="body_text_size">16sp</dimen>
+    <dimen name="header_text_size">22sp</dimen>
 </resources>
