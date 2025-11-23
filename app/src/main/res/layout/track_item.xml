@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="61dp"
+    android:orientation="horizontal"
+    android:paddingStart="13dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <ImageView
+        android:id="@+id/artworkImageView"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:layout_marginEnd="8dp"
+        android:scaleType="centerCrop"
+        android:background="@drawable/album_placeholder" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_gravity="center_vertical"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/trackNameTextView"
+            android:layout_width="250dp"
+            android:layout_height="19dp"
+            android:text="Track Name"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="?android:attr/textColorPrimary"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:gravity="center_vertical" />
+
+        <TextView
+            android:id="@+id/artistTimeTextView"
+            android:layout_width="250dp"
+            android:layout_height="13dp"
+            android:text="Artist Name • 3:45"
+            android:textSize="12sp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:gravity="center_vertical" />
+
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_agreement_24"
+        android:layout_gravity="center_vertical"
+        app:tint="?android:attr/textColorSecondary"
+        tools:ignore="UseAppTint" />
+
+</LinearLayout>
