@@ -17,4 +17,6 @@
     <color name="search_clear_icon">#FF000000</color>
 
     <color name="settings_icon">#FFFFFFFF</color>
+
+    <color name="secondary_text_dark">#FFFFFFFF</color>
 </resources>

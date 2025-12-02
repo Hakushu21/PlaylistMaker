@@ -15,4 +15,6 @@
     <color name="search_icon">#FFAEAFB4</color>
     <color name="search_clear_icon">#FFAEAFB4</color>
     <color name="settings_icon">#FFAEAFB4</color>
+
+    <color name="secondary_text_dark">#FFAEAFB4</color>
 </resources>
