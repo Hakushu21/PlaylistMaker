@@ -4,7 +4,6 @@ import android.content.Context
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
@@ -19,18 +18,25 @@ class TrackViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
     private val trackTimeTextView: TextView = itemView.findViewById(R.id.trackTimeTextView)
 
     fun bind(track: Track) {
-        trackNameTextView.text = track.trackName
-        artistNameTextView.text = track.artistName
-        trackTimeTextView.text = track.trackTime
+        trackNameTextView.text = track.trackName ?: ""
+        artistNameTextView.text = track.artistName ?: ""
+        trackTimeTextView.text = track.getFormattedTime()
 
+        // Конвертируем dp в пиксели для закругления
         val cornerRadiusPx = dpToPx(itemView.context, 2)
 
-        Glide.with(itemView)
-            .load(track.artworkUrl100)
-            .placeholder(R.drawable.ic_album_placeholder_45)
-            .error(R.drawable.ic_album_placeholder_45)
-            .apply(RequestOptions.bitmapTransform(RoundedCorners(cornerRadiusPx)))
-            .into(artworkImageView)
+        // Загрузка изображения с закругленными углами
+        val imageUrl = track.artworkUrl100
+        if (!imageUrl.isNullOrEmpty()) {
+            Glide.with(itemView)
+                .load(imageUrl)
+                .placeholder(R.drawable.ic_album_placeholder_45)
+                .error(R.drawable.ic_album_placeholder_45)
+                .apply(RequestOptions.bitmapTransform(RoundedCorners(cornerRadiusPx)))
+                .into(artworkImageView)
+        } else {
+            artworkImageView.setImageResource(R.drawable.ic_album_placeholder_45)
+        }
     }
 
     private fun dpToPx(context: Context, dp: Int): Int {

@@ -1,26 +1,43 @@
 package com.example.playlistmaker
 
-import androidx.appcompat.app.AppCompatActivity
+import android.content.res.Configuration
 import android.os.Bundle
+import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SearchActivity : AppCompatActivity() {
 
     private lateinit var searchEditText: EditText
     private lateinit var clearButton: ImageView
     private lateinit var backButton: ImageView
-    private lateinit var emptyStateText: TextView
+    private lateinit var startSearchLayout: View
+    private lateinit var nothingFoundLayout: View
+    private lateinit var nothingFoundText: TextView
+    private lateinit var nothingFoundImage: ImageView
     private lateinit var tracksRecyclerView: RecyclerView
+    private lateinit var loadingProgressBar: View
+    private lateinit var errorLayout: View
+    private lateinit var errorMessage: TextView
+    private lateinit var errorImage: ImageView
+    private lateinit var retryButton: MaterialButton
 
     private var searchQuery: String = ""
-    private val trackAdapter = TrackAdapter(createSampleTracks())
+    private var currentSearchCall: Call<SearchResponse>? = null
+    private val trackAdapter = TrackAdapter(emptyList())
+    private var lastFailedQuery: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,14 +47,23 @@ class SearchActivity : AppCompatActivity() {
         setupClickListeners()
         setupSearchField()
         setupRecyclerView()
+        showEmptyState()
     }
 
     private fun initViews() {
         searchEditText = findViewById(R.id.search_edit_text)
         clearButton = findViewById(R.id.clear_button)
         backButton = findViewById(R.id.back_button)
-        emptyStateText = findViewById(R.id.empty_state_text)
+        startSearchLayout = findViewById(R.id.start_search_layout)
+        nothingFoundLayout = findViewById(R.id.nothing_found_layout)
+        nothingFoundText = findViewById(R.id.nothing_found_text)
+        nothingFoundImage = findViewById(R.id.nothing_found_image)
         tracksRecyclerView = findViewById(R.id.tracks_recycler_view)
+        loadingProgressBar = findViewById(R.id.loading_progress_bar)
+        errorLayout = findViewById(R.id.error_layout)
+        errorMessage = findViewById(R.id.error_message)
+        errorImage = findViewById(R.id.error_image)
+        retryButton = findViewById(R.id.retry_button)
     }
 
     private fun setupClickListeners() {
@@ -49,9 +75,15 @@ class SearchActivity : AppCompatActivity() {
             clearSearch()
         }
 
+        retryButton.setOnClickListener {
+            lastFailedQuery?.let { query ->
+                performSearch(query)
+            }
+        }
+
         searchEditText.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                performSearch()
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                performSearch(searchEditText.text.toString())
                 true
             } else {
                 false
@@ -62,7 +94,7 @@ class SearchActivity : AppCompatActivity() {
     private fun setupSearchField() {
         searchEditText.doOnTextChanged { text, _, _, _ ->
             searchQuery = text?.toString() ?: ""
-            clearButton.visibility = if (text.isNullOrEmpty()) TextView.GONE else TextView.VISIBLE
+            clearButton.visibility = if (text.isNullOrEmpty()) View.GONE else View.VISIBLE
         }
 
         searchEditText.setOnFocusChangeListener { _, hasFocus ->
@@ -83,11 +115,123 @@ class SearchActivity : AppCompatActivity() {
         tracksRecyclerView.adapter = trackAdapter
     }
 
-    private fun performSearch() {
-        val query = searchEditText.text.toString().trim()
-        if (query.isNotEmpty()) {
-            hideKeyboard()
+    private fun performSearch(query: String) {
+        if (query.isBlank()) return
+
+        hideKeyboard()
+        showLoading()
+        lastFailedQuery = query
+
+        currentSearchCall?.cancel()
+
+        currentSearchCall = NetworkClient.itunesApi.search(query)
+        currentSearchCall?.enqueue(object : Callback<SearchResponse> {
+            override fun onResponse(call: Call<SearchResponse>, response: Response<SearchResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val tracks = response.body()!!.results
+                    if (tracks.isNotEmpty()) {
+                        showTracks(tracks)
+                    } else {
+                        showEmptyResults()
+                    }
+                } else {
+                    showError()
+                }
+            }
+
+            override fun onFailure(call: Call<SearchResponse>, t: Throwable) {
+                if (!call.isCanceled) {
+                    showError()
+                }
+            }
+        })
+    }
+
+    private fun showLoading() {
+        loadingProgressBar.visibility = View.VISIBLE
+        tracksRecyclerView.visibility = View.GONE
+        startSearchLayout.visibility = View.GONE
+        nothingFoundLayout.visibility = View.GONE
+        errorLayout.visibility = View.GONE
+    }
+
+    private fun showTracks(tracks: List<Track>) {
+        loadingProgressBar.visibility = View.GONE
+        tracksRecyclerView.visibility = View.VISIBLE
+        startSearchLayout.visibility = View.GONE
+        nothingFoundLayout.visibility = View.GONE
+        errorLayout.visibility = View.GONE
+
+        trackAdapter.updateTracks(tracks)
+    }
+
+    private fun showEmptyResults() {
+        loadingProgressBar.visibility = View.GONE
+        tracksRecyclerView.visibility = View.GONE
+        startSearchLayout.visibility = View.GONE
+        nothingFoundLayout.visibility = View.VISIBLE
+        errorLayout.visibility = View.GONE
+
+        nothingFoundText.text = getString(R.string.nothing_found)
+        updateNothingFoundView()
+    }
+
+    private fun showError() {
+        loadingProgressBar.visibility = View.GONE
+        tracksRecyclerView.visibility = View.GONE
+        startSearchLayout.visibility = View.GONE
+        nothingFoundLayout.visibility = View.GONE
+        errorLayout.visibility = View.VISIBLE
+
+        updateErrorView()
+    }
+
+    private fun updateNothingFoundView() {
+        val isDarkTheme = isDarkThemeEnabled()
+
+        // Устанавливаем соответствующую картинку
+        if (isDarkTheme) {
+            nothingFoundImage.setImageResource(R.drawable.ic_nothing_found_dark_120)
+        } else {
+            nothingFoundImage.setImageResource(R.drawable.ic_nothing_found_light_120)
         }
+
+        // Устанавливаем цвет текста
+        val textColor = ContextCompat.getColor(this, R.color.nothing_found_text)
+        nothingFoundText.setTextColor(textColor)
+    }
+
+    private fun updateErrorView() {
+        val isDarkTheme = isDarkThemeEnabled()
+
+        // Устанавливаем соответствующую картинку ошибки
+        if (isDarkTheme) {
+            errorImage.setImageResource(R.drawable.ic_no_internet_dark_120)
+        } else {
+            errorImage.setImageResource(R.drawable.ic_no_internet_light_120)
+        }
+
+        // Устанавливаем цвет текста ошибки
+        val textColor = ContextCompat.getColor(this, R.color.error_text)
+        errorMessage.setTextColor(textColor)
+
+        // Кнопка автоматически меняет цвета через стиль
+        // Убрали вызов updateRetryButtonColors()
+    }
+
+    private fun isDarkThemeEnabled(): Boolean {
+        return when (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
+            Configuration.UI_MODE_NIGHT_YES -> true
+            else -> false
+        }
+    }
+
+    private fun showEmptyState() {
+        loadingProgressBar.visibility = View.GONE
+        tracksRecyclerView.visibility = View.GONE
+        startSearchLayout.visibility = View.VISIBLE
+        nothingFoundLayout.visibility = View.GONE
+        errorLayout.visibility = View.GONE
     }
 
     private fun showKeyboard() {
@@ -104,6 +248,21 @@ class SearchActivity : AppCompatActivity() {
         searchEditText.setText("")
         hideKeyboard()
         searchEditText.clearFocus()
+        showEmptyState()
+        trackAdapter.updateTracks(emptyList())
+
+        currentSearchCall?.cancel()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Обновляем вид при возвращении на экран
+        if (nothingFoundLayout.visibility == View.VISIBLE) {
+            updateNothingFoundView()
+        }
+        if (errorLayout.visibility == View.VISIBLE) {
+            updateErrorView()
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -115,45 +274,10 @@ class SearchActivity : AppCompatActivity() {
         super.onRestoreInstanceState(savedInstanceState)
         val savedSearchQuery = savedInstanceState.getString(SEARCH_QUERY_KEY, "")
         searchEditText.setText(savedSearchQuery)
-        clearButton.visibility = if (savedSearchQuery.isEmpty()) TextView.GONE else TextView.VISIBLE
+        clearButton.visibility = if (savedSearchQuery.isEmpty()) View.GONE else View.VISIBLE
     }
 
     companion object {
         private const val SEARCH_QUERY_KEY = "SEARCH_QUERY"
-
-        private fun createSampleTracks(): List<Track> {
-            return listOf(
-                Track(
-                    "Smells Like Teen Spirit",
-                    "Nirvana",
-                    "5:01",
-                    "https://is5-ssl.mzstatic.com/image/thumb/Music115/v4/7b/58/c2/7b58c21a-2b51-2bb2-e59a-9bb9b96ad8c3/00602567924166.rgb.jpg/100x100bb.jpg"
-                ),
-                Track(
-                    "Billie Jean",
-                    "Michael Jackson",
-                    "4:35",
-                    "https://is5-ssl.mzstatic.com/image/thumb/Music125/v4/3d/9d/38/3d9d3811-71f0-3a0e-1ada-3004e56ff852/827969428726.jpg/100x100bb.jpg"
-                ),
-                Track(
-                    "Stayin' Alive",
-                    "Bee Gees",
-                    "4:10",
-                    "https://is4-ssl.mzstatic.com/image/thumb/Music115/v4/1f/80/1f/1f801fc1-8c0f-ea3e-d3e5-387c6619619e/16UMGIM86640.rgb.jpg/100x100bb.jpg"
-                ),
-                Track(
-                    "Whole Lotta Love",
-                    "Led Zeppelin",
-                    "5:33",
-                    "https://is2-ssl.mzstatic.com/image/thumb/Music62/v4/7e/17/e3/7e17e33f-2efa-2a36-e916-7f808576cf6b/mzm.fyigqcbs.jpg/100x100bb.jpg"
-                ),
-                Track(
-                    "Sweet Child O'Mine",
-                    "Guns N' Roses",
-                    "5:03",
-                    "https://is5-ssl.mzstatic.com/image/thumb/Music125/v4/a0/4d/c4/a04dc484-03cc-02aa-fa82-5334fcb4bc16/18UMGIM24878.rgb.jpg/100x100bb.jpg"
-                )
-            )
-        }
     }
 }
