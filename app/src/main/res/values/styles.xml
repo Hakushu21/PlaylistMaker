@@ -21,4 +21,44 @@
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">8dp</item>
     </style>
+
+    <style name="RetryButtonStyle" parent="Widget.MaterialComponents.Button.UnelevatedButton">
+        <!-- Размеры кнопки -->
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+
+        <!-- Убираем минимальные размеры и внутренние отступы MaterialButton -->
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:insetLeft">0dp</item>
+        <item name="android:insetRight">0dp</item>
+
+        <!-- Внутренние отступы для формирования размера -->
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">6dp</item>
+
+        <!-- Стиль текста -->
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:gravity">center</item>
+        <item name="android:fontFamily">@font/ys_display_medium</item>
+
+        <!-- Линейная высота текста -->
+        <item name="android:lineHeight">16sp</item>
+
+        <!-- Закругленные углы -->
+        <item name="cornerRadius">54dp</item>
+
+        <!-- Отключаем анимацию по умолчанию -->
+        <item name="android:stateListAnimator">@null</item>
+
+        <!-- Цвета -->
+        <item name="android:backgroundTint">@color/retry_button_background</item>
+        <item name="android:textColor">@color/retry_button_text</item>
+    </style>
 </resources>
