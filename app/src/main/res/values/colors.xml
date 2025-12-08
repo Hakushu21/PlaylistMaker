@@ -9,6 +9,7 @@
     <color name="header_text">#FFFFFFFF</color>
 
     <color name="search_background">#FFFFFFFF</color>
+
     <color name="search_field_background">#FFE6E8EB</color>
     <color name="search_hint">#FFAEAFB4</color>
     <color name="search_text">#FF000000</color>
@@ -17,4 +18,13 @@
     <color name="settings_icon">#FFAEAFB4</color>
 
     <color name="secondary_text_dark">#FFAEAFB4</color>
+    <color name="nothing_found_text">#FF1A1B22</color>
+    <color name="error_text">#FF1A1B22</color>
+    <color name="retry_button_background">#FF1A1B22</color>
+    <color name="retry_button_text">#FFFFFFFF</color>
+
+    <color name="nothing_found_icon_primary">#FF1A1B22</color>
+    <color name="nothing_found_icon_secondary">#FF1A1B22</color>
+    <color name="nothing_found_icon_accent">#FFFCD452</color>
+    <color name="nothing_found_icon_details">#FF1A1B22</color>
 </resources>
