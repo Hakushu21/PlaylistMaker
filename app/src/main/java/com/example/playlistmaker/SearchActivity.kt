@@ -127,8 +127,10 @@ class SearchActivity : AppCompatActivity() {
         currentSearchCall = NetworkClient.itunesApi.search(query)
         currentSearchCall?.enqueue(object : Callback<SearchResponse> {
             override fun onResponse(call: Call<SearchResponse>, response: Response<SearchResponse>) {
-                if (response.isSuccessful && response.body() != null) {
-                    val tracks = response.body()!!.results
+                if (response.isSuccessful) {
+                    val searchResponse = response.body()
+                    val tracks = searchResponse?.results ?: emptyList()
+
                     if (tracks.isNotEmpty()) {
                         showTracks(tracks)
                     } else {
@@ -189,22 +191,19 @@ class SearchActivity : AppCompatActivity() {
     private fun updateNothingFoundView() {
         val isDarkTheme = isDarkThemeEnabled()
 
-        // Устанавливаем соответствующую картинку
         if (isDarkTheme) {
             nothingFoundImage.setImageResource(R.drawable.ic_nothing_found_dark_120)
         } else {
             nothingFoundImage.setImageResource(R.drawable.ic_nothing_found_light_120)
         }
 
-        // Устанавливаем цвет текста
         val textColor = ContextCompat.getColor(this, R.color.nothing_found_text)
         nothingFoundText.setTextColor(textColor)
     }
-
     private fun updateErrorView() {
         val isDarkTheme = isDarkThemeEnabled()
 
-        // Устанавливаем соответствующую картинку ошибки
+        // Устанавливаем правильную иконку в зависимости от темы
         if (isDarkTheme) {
             errorImage.setImageResource(R.drawable.ic_no_internet_dark_120)
         } else {
@@ -214,9 +213,6 @@ class SearchActivity : AppCompatActivity() {
         // Устанавливаем цвет текста ошибки
         val textColor = ContextCompat.getColor(this, R.color.error_text)
         errorMessage.setTextColor(textColor)
-
-        // Кнопка автоматически меняет цвета через стиль
-        // Убрали вызов updateRetryButtonColors()
     }
 
     private fun isDarkThemeEnabled(): Boolean {

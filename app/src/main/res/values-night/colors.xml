@@ -23,4 +23,9 @@
     <color name="error_text">#FFFFFFFF</color>
     <color name="retry_button_background">#FFFFFFFF</color>
     <color name="retry_button_text">#FF1A1B22</color>
+
+    <color name="nothing_found_icon_primary">#FFFFFFFF</color>
+    <color name="nothing_found_icon_secondary">#FFFFFFFF</color>
+    <color name="nothing_found_icon_accent">#FFFCD452</color>
+    <color name="nothing_found_icon_details">#FF1A1B22</color>
 </resources>
