@@ -58,7 +58,6 @@
 
     </LinearLayout>
 
-    <!-- Поделиться приложением -->
     <LinearLayout
         android:id="@+id/share_app_layout"
         android:layout_width="match_parent"
@@ -87,6 +86,7 @@
 
     </LinearLayout>
 
+    <!-- Поддержка -->
     <LinearLayout
         android:id="@+id/support_layout"
         android:layout_width="match_parent"

@@ -1,116 +1,75 @@
 package com.example.playlistmaker
 
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
-import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.switchmaterial.SwitchMaterial
 
 class SettingsActivity : AppCompatActivity() {
-
-    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
-        sharedPreferences = getSharedPreferences(MainActivity.THEME_PREFS_NAME, MODE_PRIVATE)
+        setupBackButton()
+        setupThemeSwitch()
+        setupShareApp()
+        setupSupport()
+        setupUserAgreement()
+    }
 
+    private fun setupBackButton() {
         val backButton = findViewById<ImageView>(R.id.back_button)
         backButton.setOnClickListener {
             finish()
         }
+    }
 
+    private fun setupThemeSwitch() {
         val themeSwitch = findViewById<SwitchMaterial>(R.id.theme_switch)
-        themeSwitch.isChecked = isDarkThemeEnabled()
-        themeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            switchTheme(isChecked)
-            saveThemeState(isChecked)
-        }
 
-        val shareAppLayout = findViewById<LinearLayout>(R.id.share_app_layout)
+        // Устанавливаем текущее состояние переключателя
+        themeSwitch.isChecked = (application as App).darkTheme
+
+        // Обработка изменения состояния переключателя
+        themeSwitch.setOnCheckedChangeListener { _, checked ->
+            (application as App).switchTheme(checked)
+        }
+    }
+
+    private fun setupShareApp() {
+        val shareAppLayout = findViewById<LinearLayout>(R.id.share_app_layout) // Изменено на LinearLayout
         shareAppLayout.setOnClickListener {
-            shareApp()
-        }
-
-        val supportLayout = findViewById<LinearLayout>(R.id.support_layout)
-        supportLayout.setOnClickListener {
-            sendSupportEmail()
-        }
-
-        val userAgreementLayout = findViewById<LinearLayout>(R.id.user_agreement_layout)
-        userAgreementLayout.setOnClickListener {
-            openUserAgreement()
-        }
-    }
-
-    private fun isDarkThemeEnabled(): Boolean {
-        return AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
-    }
-
-    private fun switchTheme(isDarkTheme: Boolean) {
-        val mode = if (isDarkTheme) {
-            AppCompatDelegate.MODE_NIGHT_YES
-        } else {
-            AppCompatDelegate.MODE_NIGHT_NO
-        }
-        AppCompatDelegate.setDefaultNightMode(mode)
-    }
-
-    private fun saveThemeState(isDarkTheme: Boolean) {
-        sharedPreferences.edit()
-            .putBoolean(MainActivity.DARK_THEME_KEY, isDarkTheme)
-            .apply()
-    }
-
-    private fun shareApp() {
-        val shareIntent = Intent(Intent.ACTION_SEND)
-        shareIntent.type = "text/plain"
-        shareIntent.putExtra(Intent.EXTRA_TEXT, getString(R.string.share_app_text))
-
-        val chooserIntent = Intent.createChooser(shareIntent, getString(R.string.share_app))
-        startActivity(chooserIntent)
-    }
-
-    private fun sendSupportEmail() {
-        val emailIntent = Intent(Intent.ACTION_SENDTO)
-        emailIntent.data = Uri.parse("mailto:")
-        emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf(getString(R.string.support_email)))
-        emailIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.support_subject))
-        emailIntent.putExtra(Intent.EXTRA_TEXT, getString(R.string.support_body))
-
-        try {
-            startActivity(emailIntent)
-        } catch (e: Exception) {
-            Log.e("SettingsActivity", "No email app found", e)
-
-            val fallbackIntent = Intent(Intent.ACTION_SEND)
-            fallbackIntent.type = "message/rfc822"
-            fallbackIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf(getString(R.string.support_email)))
-            fallbackIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.support_subject))
-            fallbackIntent.putExtra(Intent.EXTRA_TEXT, getString(R.string.support_body))
-
-            try {
-                startActivity(fallbackIntent)
-            } catch (ex: Exception) {
-                Log.e("SettingsActivity", "No email app available", ex)
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, getString(R.string.share_app_text))
             }
+            startActivity(Intent.createChooser(shareIntent, getString(R.string.share_app)))
         }
     }
 
-    private fun openUserAgreement() {
-        val agreementIntent = Intent(Intent.ACTION_VIEW)
-        agreementIntent.data = Uri.parse(getString(R.string.user_agreement_url))
+    private fun setupSupport() {
+        val supportLayout = findViewById<LinearLayout>(R.id.support_layout) // Изменено на LinearLayout
+        supportLayout.setOnClickListener {
+            val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:")
+                putExtra(Intent.EXTRA_EMAIL, arrayOf(getString(R.string.support_email)))
+                putExtra(Intent.EXTRA_SUBJECT, getString(R.string.support_subject))
+                putExtra(Intent.EXTRA_TEXT, getString(R.string.support_body))
+            }
+            startActivity(emailIntent)
+        }
+    }
 
-        try {
-            startActivity(agreementIntent)
-        } catch (e: Exception) {
-            Log.e("SettingsActivity", "No browser app found", e)
+    private fun setupUserAgreement() {
+        val userAgreementLayout = findViewById<LinearLayout>(R.id.user_agreement_layout) // Изменено на LinearLayout
+        userAgreementLayout.setOnClickListener {
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.user_agreement_url)))
+            startActivity(browserIntent)
         }
     }
 }
