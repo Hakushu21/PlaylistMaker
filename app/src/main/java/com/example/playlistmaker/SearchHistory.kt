@@ -26,18 +26,14 @@ class SearchHistory(
     fun addTrack(track: Track) {
         val currentHistory = getHistory().toMutableList()
 
-        // Удаляем старую запись этого трека, если она есть
         currentHistory.removeAll { it.trackId == track.trackId }
 
-        // Добавляем новый трек в начало списка
         currentHistory.add(0, track)
 
-        // Ограничиваем размер истории
         if (currentHistory.size > MAX_HISTORY_SIZE) {
             currentHistory.removeLast()
         }
 
-        // Сохраняем обновленную историю
         saveHistory(currentHistory)
     }
 

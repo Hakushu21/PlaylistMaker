@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
@@ -35,7 +34,6 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var errorImage: ImageView
     private lateinit var retryButton: MaterialButton
 
-    // Элементы для истории поиска
     private lateinit var historyTitle: TextView
     private lateinit var historyRecyclerView: RecyclerView
     private lateinit var historyLayout: View
@@ -45,15 +43,13 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var searchHistory: SearchHistory
     private var lastFailedQuery: String? = null
 
-    // Адаптеры
     private lateinit var searchAdapter: TrackAdapter
-    private lateinit var historyAdapter: HistoryAdapter // Изменили тип на HistoryAdapter
+    private lateinit var historyAdapter: HistoryAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
-        // Инициализируем историю поиска
         searchHistory = SearchHistory(
             getSharedPreferences("search_history", MODE_PRIVATE)
         )
@@ -63,7 +59,6 @@ class SearchActivity : AppCompatActivity() {
         setupSearchField()
         setupRecyclerViews()
 
-        // Показываем историю или начальное состояние
         updateHistoryVisibility()
     }
 
@@ -82,13 +77,9 @@ class SearchActivity : AppCompatActivity() {
         errorImage = findViewById(R.id.error_image)
         retryButton = findViewById(R.id.retry_button)
 
-        // История поиска
         historyTitle = findViewById(R.id.history_title)
         historyRecyclerView = findViewById(R.id.history_recycler_view)
         historyLayout = findViewById(R.id.history_layout)
-
-        // УБРАЛИ эту строку, так как кнопка теперь в адаптере
-        // clearHistoryButton = findViewById(R.id.clear_history_button_item)
     }
 
     private fun setupClickListeners() {
@@ -105,12 +96,6 @@ class SearchActivity : AppCompatActivity() {
                 performSearch(query)
             }
         }
-
-        // УБРАЛИ этот обработчик, так как кнопка теперь в адаптере
-        // clearHistoryButton.setOnClickListener {
-        //     searchHistory.clearHistory()
-        //     updateHistoryVisibility()
-        // }
 
         searchEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -144,28 +129,23 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerViews() {
-        // Адаптер для результатов поиска
         searchAdapter = TrackAdapter(emptyList()) { track ->
-            // Добавляем трек в историю при клике
             searchHistory.addTrack(track)
-            // Обновляем отображение истории
             updateHistoryVisibility()
         }
 
         tracksRecyclerView.layoutManager = LinearLayoutManager(this)
         tracksRecyclerView.adapter = searchAdapter
 
-        // Адаптер для истории поиска с кнопкой
         historyAdapter = HistoryAdapter(
             emptyList(),
             onTrackClick = { track ->
-                // При клике на трек в истории добавляем его в историю (перемещаем наверх)
                 searchHistory.addTrack(track)
                 updateHistoryVisibility()
             },
             onClearHistoryClick = {
-                // Очищаем историю
                 searchHistory.clearHistory()
+                historyAdapter.clearHistory()
                 updateHistoryVisibility()
             }
         )
@@ -179,34 +159,21 @@ class SearchActivity : AppCompatActivity() {
         val isEmpty = searchEditText.text.isNullOrEmpty()
         val history = searchHistory.getHistory()
 
-        if (hasFocus && isEmpty) {
-            if (history.isNotEmpty()) {
-                // Показываем историю
-                historyLayout.visibility = View.VISIBLE
-                startSearchLayout.visibility = View.GONE
-                tracksRecyclerView.visibility = View.GONE
-                nothingFoundLayout.visibility = View.GONE
-                errorLayout.visibility = View.GONE
-                loadingProgressBar.visibility = View.GONE
-
-                historyAdapter.updateTracks(history)
-            } else {
-                // Показываем начальное состояние
-                showEmptyState()
-            }
-        } else if (hasFocus && isEmpty) {
-            // Если поле в фокусе и пустое, но нет истории - показываем начальное состояние
-            showEmptyState()
-        }
-    }
-
-    private fun showEmptyState() {
-        loadingProgressBar.visibility = View.GONE
+        startSearchLayout.visibility = View.GONE
+        historyLayout.visibility = View.GONE
         tracksRecyclerView.visibility = View.GONE
-        startSearchLayout.visibility = View.VISIBLE
         nothingFoundLayout.visibility = View.GONE
         errorLayout.visibility = View.GONE
-        historyLayout.visibility = View.GONE
+        loadingProgressBar.visibility = View.GONE
+
+        if (isEmpty) {
+            if (hasFocus && history.isNotEmpty()) {
+                historyLayout.visibility = View.VISIBLE
+                historyAdapter.updateTracks(history)
+            } else {
+                startSearchLayout.visibility = View.VISIBLE
+            }
+        }
     }
 
     private fun performSearch(query: String) {
@@ -341,14 +308,12 @@ class SearchActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Обновляем вид при возвращении на экран
         if (nothingFoundLayout.visibility == View.VISIBLE) {
             updateNothingFoundView()
         }
         if (errorLayout.visibility == View.VISIBLE) {
             updateErrorView()
         }
-        // Обновляем историю при возвращении на экран
         updateHistoryVisibility()
     }
 
