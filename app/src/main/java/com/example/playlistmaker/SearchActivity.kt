@@ -34,20 +34,32 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var errorImage: ImageView
     private lateinit var retryButton: MaterialButton
 
+    private lateinit var historyTitle: TextView
+    private lateinit var historyRecyclerView: RecyclerView
+    private lateinit var historyLayout: View
+
     private var searchQuery: String = ""
     private var currentSearchCall: Call<SearchResponse>? = null
-    private val trackAdapter = TrackAdapter(emptyList())
+    private lateinit var searchHistory: SearchHistory
     private var lastFailedQuery: String? = null
+
+    private lateinit var searchAdapter: TrackAdapter
+    private lateinit var historyAdapter: HistoryAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
+        searchHistory = SearchHistory(
+            getSharedPreferences("search_history", MODE_PRIVATE)
+        )
+
         initViews()
         setupClickListeners()
         setupSearchField()
-        setupRecyclerView()
-        showEmptyState()
+        setupRecyclerViews()
+
+        updateHistoryVisibility()
     }
 
     private fun initViews() {
@@ -64,6 +76,10 @@ class SearchActivity : AppCompatActivity() {
         errorMessage = findViewById(R.id.error_message)
         errorImage = findViewById(R.id.error_image)
         retryButton = findViewById(R.id.retry_button)
+
+        historyTitle = findViewById(R.id.history_title)
+        historyRecyclerView = findViewById(R.id.history_recycler_view)
+        historyLayout = findViewById(R.id.history_layout)
     }
 
     private fun setupClickListeners() {
@@ -95,9 +111,11 @@ class SearchActivity : AppCompatActivity() {
         searchEditText.doOnTextChanged { text, _, _, _ ->
             searchQuery = text?.toString() ?: ""
             clearButton.visibility = if (text.isNullOrEmpty()) View.GONE else View.VISIBLE
+            updateHistoryVisibility()
         }
 
         searchEditText.setOnFocusChangeListener { _, hasFocus ->
+            updateHistoryVisibility()
             if (hasFocus && searchEditText.text.isNullOrEmpty()) {
                 showKeyboard()
             }
@@ -110,9 +128,52 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRecyclerView() {
+    private fun setupRecyclerViews() {
+        searchAdapter = TrackAdapter(emptyList()) { track ->
+            searchHistory.addTrack(track)
+            updateHistoryVisibility()
+        }
+
         tracksRecyclerView.layoutManager = LinearLayoutManager(this)
-        tracksRecyclerView.adapter = trackAdapter
+        tracksRecyclerView.adapter = searchAdapter
+
+        historyAdapter = HistoryAdapter(
+            emptyList(),
+            onTrackClick = { track ->
+                searchHistory.addTrack(track)
+                updateHistoryVisibility()
+            },
+            onClearHistoryClick = {
+                searchHistory.clearHistory()
+                historyAdapter.clearHistory()
+                updateHistoryVisibility()
+            }
+        )
+
+        historyRecyclerView.layoutManager = LinearLayoutManager(this)
+        historyRecyclerView.adapter = historyAdapter
+    }
+
+    private fun updateHistoryVisibility() {
+        val hasFocus = searchEditText.hasFocus()
+        val isEmpty = searchEditText.text.isNullOrEmpty()
+        val history = searchHistory.getHistory()
+
+        startSearchLayout.visibility = View.GONE
+        historyLayout.visibility = View.GONE
+        tracksRecyclerView.visibility = View.GONE
+        nothingFoundLayout.visibility = View.GONE
+        errorLayout.visibility = View.GONE
+        loadingProgressBar.visibility = View.GONE
+
+        if (isEmpty) {
+            if (hasFocus && history.isNotEmpty()) {
+                historyLayout.visibility = View.VISIBLE
+                historyAdapter.updateTracks(history)
+            } else {
+                startSearchLayout.visibility = View.VISIBLE
+            }
+        }
     }
 
     private fun performSearch(query: String) {
@@ -155,6 +216,7 @@ class SearchActivity : AppCompatActivity() {
         startSearchLayout.visibility = View.GONE
         nothingFoundLayout.visibility = View.GONE
         errorLayout.visibility = View.GONE
+        historyLayout.visibility = View.GONE
     }
 
     private fun showTracks(tracks: List<Track>) {
@@ -163,8 +225,9 @@ class SearchActivity : AppCompatActivity() {
         startSearchLayout.visibility = View.GONE
         nothingFoundLayout.visibility = View.GONE
         errorLayout.visibility = View.GONE
+        historyLayout.visibility = View.GONE
 
-        trackAdapter.updateTracks(tracks)
+        searchAdapter.updateTracks(tracks)
     }
 
     private fun showEmptyResults() {
@@ -173,6 +236,7 @@ class SearchActivity : AppCompatActivity() {
         startSearchLayout.visibility = View.GONE
         nothingFoundLayout.visibility = View.VISIBLE
         errorLayout.visibility = View.GONE
+        historyLayout.visibility = View.GONE
 
         nothingFoundText.text = getString(R.string.nothing_found)
         updateNothingFoundView()
@@ -184,6 +248,7 @@ class SearchActivity : AppCompatActivity() {
         startSearchLayout.visibility = View.GONE
         nothingFoundLayout.visibility = View.GONE
         errorLayout.visibility = View.VISIBLE
+        historyLayout.visibility = View.GONE
 
         updateErrorView()
     }
@@ -200,17 +265,16 @@ class SearchActivity : AppCompatActivity() {
         val textColor = ContextCompat.getColor(this, R.color.nothing_found_text)
         nothingFoundText.setTextColor(textColor)
     }
+
     private fun updateErrorView() {
         val isDarkTheme = isDarkThemeEnabled()
 
-        // Устанавливаем правильную иконку в зависимости от темы
         if (isDarkTheme) {
             errorImage.setImageResource(R.drawable.ic_no_internet_dark_120)
         } else {
             errorImage.setImageResource(R.drawable.ic_no_internet_light_120)
         }
 
-        // Устанавливаем цвет текста ошибки
         val textColor = ContextCompat.getColor(this, R.color.error_text)
         errorMessage.setTextColor(textColor)
     }
@@ -220,14 +284,6 @@ class SearchActivity : AppCompatActivity() {
             Configuration.UI_MODE_NIGHT_YES -> true
             else -> false
         }
-    }
-
-    private fun showEmptyState() {
-        loadingProgressBar.visibility = View.GONE
-        tracksRecyclerView.visibility = View.GONE
-        startSearchLayout.visibility = View.VISIBLE
-        nothingFoundLayout.visibility = View.GONE
-        errorLayout.visibility = View.GONE
     }
 
     private fun showKeyboard() {
@@ -244,21 +300,21 @@ class SearchActivity : AppCompatActivity() {
         searchEditText.setText("")
         hideKeyboard()
         searchEditText.clearFocus()
-        showEmptyState()
-        trackAdapter.updateTracks(emptyList())
+        updateHistoryVisibility()
+        searchAdapter.updateTracks(emptyList())
 
         currentSearchCall?.cancel()
     }
 
     override fun onResume() {
         super.onResume()
-        // Обновляем вид при возвращении на экран
         if (nothingFoundLayout.visibility == View.VISIBLE) {
             updateNothingFoundView()
         }
         if (errorLayout.visibility == View.VISIBLE) {
             updateErrorView()
         }
+        updateHistoryVisibility()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -271,6 +327,7 @@ class SearchActivity : AppCompatActivity() {
         val savedSearchQuery = savedInstanceState.getString(SEARCH_QUERY_KEY, "")
         searchEditText.setText(savedSearchQuery)
         clearButton.visibility = if (savedSearchQuery.isEmpty()) View.GONE else View.VISIBLE
+        updateHistoryVisibility()
     }
 
     companion object {
