@@ -1,6 +1,7 @@
 package com.example.playlistmaker
 
 import com.google.gson.annotations.SerializedName
+import java.io.Serializable
 
 data class Track(
     @SerializedName("trackId")
@@ -32,7 +33,7 @@ data class Track(
 
     @SerializedName("previewUrl")
     val previewUrl: String?
-) {
+) : Serializable {
     fun getFormattedTime(): String {
         return try {
             val minutes = trackTimeMillis / 1000 / 60
@@ -41,5 +42,17 @@ data class Track(
         } catch (e: Exception) {
             "00:00"
         }
+    }
+
+    fun getReleaseYear(): String? {
+        return try {
+            releaseDate?.substring(0, 4)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun getArtworkUrl512(): String {
+        return artworkUrl100.replace("100x100bb", "512x512bb")
     }
 }

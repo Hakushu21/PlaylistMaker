@@ -42,16 +42,16 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
 
-    // Glide для загрузки изображений
     implementation(libs.glide)
     annotationProcessor(libs.glide.compiler)
 
-    // Retrofit для сетевых запросов
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
 
-    // Gson для работы с JSON
     implementation("com.google.code.gson:gson:2.10.1")
+
+    implementation(libs.glide)
+    annotationProcessor(libs.glide.compiler)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

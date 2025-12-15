@@ -24,4 +24,14 @@
 
     <string name="search_history_title">Вы искали</string>
     <string name="clear_history">Очистить историю</string>
+
+    <string name="back">Назад</string>
+    <string name="add_to_playlist">Добавить в плейлист</string>
+    <string name="add_to_favorites">Добавить в избранное</string>
+    <string name="play_pause">Воспроизведение/Пауза</string>
+    <string name="album">Альбом</string>
+    <string name="year">Год</string>
+    <string name="genre">Жанр</string>
+    <string name="country">Страна</string>
+    <string name="duration">Длительность</string>
 </resources>
