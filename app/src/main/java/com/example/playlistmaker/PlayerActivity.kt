@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
@@ -27,10 +28,11 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var yearValue: TextView
     private lateinit var genreValue: TextView
     private lateinit var countryValue: TextView
-    private lateinit var albumLayout: android.widget.LinearLayout
-    private lateinit var yearLayout: android.widget.LinearLayout
-    private lateinit var genreLayout: android.widget.LinearLayout
-    private lateinit var countryLayout: android.widget.LinearLayout
+    private lateinit var durationLabel: TextView
+    private lateinit var albumLabel: TextView
+    private lateinit var yearLabel: TextView
+    private lateinit var genreLabel: TextView
+    private lateinit var countryLabel: TextView
 
     private var isPlaying = false
     private var currentPosition = 0
@@ -72,18 +74,21 @@ class PlayerActivity : AppCompatActivity() {
         trackNameTextView = findViewById(R.id.trackNameTextView)
         artistNameTextView = findViewById(R.id.artistNameTextView)
         trackDurationTextView = findViewById(R.id.trackDurationTextView)
-        addToPlaylistButton = findViewById(R.id.addToPlaylistButton)
+        addToPlaylistButton = findViewById(/* id = */ R.id.addToPlaylistButton)
         favoriteButton = findViewById(R.id.favoriteButton)
         playPauseButton = findViewById(R.id.playPauseButton)
+
         durationValue = findViewById(R.id.durationValue)
         albumValue = findViewById(R.id.albumValue)
         yearValue = findViewById(R.id.yearValue)
         genreValue = findViewById(R.id.genreValue)
         countryValue = findViewById(R.id.countryValue)
-        albumLayout = findViewById(R.id.albumLayout)
-        yearLayout = findViewById(R.id.yearLayout)
-        genreLayout = findViewById(R.id.genreLayout)
-        countryLayout = findViewById(R.id.countryLayout)
+
+        durationLabel = findViewById(R.id.durationLabel)
+        albumLabel = findViewById(R.id.albumLabel)
+        yearLabel = findViewById(R.id.yearLabel)
+        genreLabel = findViewById(R.id.genreLabel)
+        countryLabel = findViewById(R.id.countryLabel)
     }
 
     private fun setupClickListeners() {
@@ -111,30 +116,38 @@ class PlayerActivity : AppCompatActivity() {
 
         if (!track.collectionName.isNullOrEmpty()) {
             albumValue.text = track.collectionName
-            albumLayout.visibility = android.view.View.VISIBLE
+            albumLabel.visibility = View.VISIBLE
+            albumValue.visibility = View.VISIBLE
         } else {
-            albumLayout.visibility = android.view.View.GONE
+            albumLabel.visibility = View.GONE
+            albumValue.visibility = View.GONE
         }
 
         track.getReleaseYear()?.let {
             yearValue.text = it
-            yearLayout.visibility = android.view.View.VISIBLE
+            yearLabel.visibility = View.VISIBLE
+            yearValue.visibility = View.VISIBLE
         } ?: run {
-            yearLayout.visibility = android.view.View.GONE
+            yearLabel.visibility = View.GONE
+            yearValue.visibility = View.GONE
         }
 
         if (!track.primaryGenreName.isNullOrEmpty()) {
             genreValue.text = track.primaryGenreName
-            genreLayout.visibility = android.view.View.VISIBLE
+            genreLabel.visibility = View.VISIBLE
+            genreValue.visibility = View.VISIBLE
         } else {
-            genreLayout.visibility = android.view.View.GONE
+            genreLabel.visibility = View.GONE
+            genreValue.visibility = View.GONE
         }
 
         if (!track.country.isNullOrEmpty()) {
             countryValue.text = track.country
-            countryLayout.visibility = android.view.View.VISIBLE
+            countryLabel.visibility = View.VISIBLE
+            countryValue.visibility = View.VISIBLE
         } else {
-            countryLayout.visibility = android.view.View.GONE
+            countryLabel.visibility = View.GONE
+            countryValue.visibility = View.GONE
         }
 
         val isDarkTheme = isDarkThemeEnabled()
@@ -172,22 +185,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun updatePlayPauseButton() {
-        val isDarkTheme = isDarkThemeEnabled()
-
         if (isPlaying) {
-            val pauseIconRes = if (isDarkTheme) {
-                R.drawable.ic_pause_dark_84
-            } else {
-                R.drawable.ic_pause_light_84
-            }
-            playPauseButton.setImageResource(pauseIconRes)
+            playPauseButton.setImageResource(R.drawable.ic_pause_84)
         } else {
-            val playIconRes = if (isDarkTheme) {
-                R.drawable.ic_play_dark_84
-            } else {
-                R.drawable.ic_play_light_84
-            }
-            playPauseButton.setImageResource(playIconRes)
+            playPauseButton.setImageResource(R.drawable.ic_play_84)
         }
     }
 
