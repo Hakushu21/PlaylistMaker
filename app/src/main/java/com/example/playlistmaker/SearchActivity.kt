@@ -1,5 +1,6 @@
 package com.example.playlistmaker
 
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
@@ -132,6 +133,10 @@ class SearchActivity : AppCompatActivity() {
         searchAdapter = TrackAdapter(emptyList()) { track ->
             searchHistory.addTrack(track)
             updateHistoryVisibility()
+
+            val intent = Intent(this, PlayerActivity::class.java)
+            intent.putExtra("track", track)
+            startActivity(intent)
         }
 
         tracksRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -142,6 +147,10 @@ class SearchActivity : AppCompatActivity() {
             onTrackClick = { track ->
                 searchHistory.addTrack(track)
                 updateHistoryVisibility()
+
+                val intent = Intent(this, PlayerActivity::class.java)
+                intent.putExtra("track", track)
+                startActivity(intent)
             },
             onClearHistoryClick = {
                 searchHistory.clearHistory()

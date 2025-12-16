@@ -31,4 +31,6 @@
     <color name="history_title_text">#FF1A1B22</color>
     <color name="clear_history_button_background">#FF1A1B22</color>
     <color name="clear_history_button_text">#FFFFFFFF</color>
+
+    <color name="player_background">#FFFFFFFF</color>
 </resources>
