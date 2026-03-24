@@ -3,11 +3,16 @@ package com.example.playlistmaker
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -29,7 +34,7 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var nothingFoundText: TextView
     private lateinit var nothingFoundImage: ImageView
     private lateinit var tracksRecyclerView: RecyclerView
-    private lateinit var loadingProgressBar: View
+    private lateinit var loadingProgressBar: ProgressBar
     private lateinit var errorLayout: View
     private lateinit var errorMessage: TextView
     private lateinit var errorImage: ImageView
@@ -46,6 +51,19 @@ class SearchActivity : AppCompatActivity() {
 
     private lateinit var searchAdapter: TrackAdapter
     private lateinit var historyAdapter: HistoryAdapter
+
+    // Для debounce
+    private val handler = Handler(Looper.getMainLooper())
+    private var searchRunnable: Runnable? = null
+
+    // Для debounce кликов
+    private var isClickAllowed = true
+    private val clickDebounceDelay = 1000L
+
+    companion object {
+        private const val SEARCH_QUERY_KEY = "SEARCH_QUERY"
+        private const val SEARCH_DEBOUNCE_DELAY = 2000L
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,6 +118,7 @@ class SearchActivity : AppCompatActivity() {
 
         searchEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
+                searchRunnable?.let { handler.removeCallbacks(it) }
                 performSearch(searchEditText.text.toString())
                 true
             } else {
@@ -109,11 +128,28 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun setupSearchField() {
-        searchEditText.doOnTextChanged { text, _, _, _ ->
-            searchQuery = text?.toString() ?: ""
-            clearButton.visibility = if (text.isNullOrEmpty()) View.GONE else View.VISIBLE
-            updateHistoryVisibility()
-        }
+        searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                searchQuery = s?.toString() ?: ""
+                clearButton.visibility = if (searchQuery.isNotEmpty()) View.VISIBLE else View.GONE
+
+                // Debounce для поиска
+                searchRunnable?.let { handler.removeCallbacks(it) }
+
+                if (searchQuery.isNotEmpty()) {
+                    searchRunnable = Runnable {
+                        performSearch(searchQuery)
+                    }
+                    handler.postDelayed(searchRunnable!!, SEARCH_DEBOUNCE_DELAY)
+                } else {
+                    updateHistoryVisibility()
+                }
+            }
+        })
 
         searchEditText.setOnFocusChangeListener { _, hasFocus ->
             updateHistoryVisibility()
@@ -121,22 +157,18 @@ class SearchActivity : AppCompatActivity() {
                 showKeyboard()
             }
         }
-
-        searchEditText.setOnClickListener {
-            if (searchEditText.text.isNullOrEmpty()) {
-                showKeyboard()
-            }
-        }
     }
 
     private fun setupRecyclerViews() {
         searchAdapter = TrackAdapter(emptyList()) { track ->
-            searchHistory.addTrack(track)
-            updateHistoryVisibility()
+            if (clickDebounce()) {
+                searchHistory.addTrack(track)
+                updateHistoryVisibility()
 
-            val intent = Intent(this, PlayerActivity::class.java)
-            intent.putExtra("track", track)
-            startActivity(intent)
+                val intent = Intent(this, PlayerActivity::class.java)
+                intent.putExtra("track", track)
+                startActivity(intent)
+            }
         }
 
         tracksRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -145,12 +177,14 @@ class SearchActivity : AppCompatActivity() {
         historyAdapter = HistoryAdapter(
             emptyList(),
             onTrackClick = { track ->
-                searchHistory.addTrack(track)
-                updateHistoryVisibility()
+                if (clickDebounce()) {
+                    searchHistory.addTrack(track)
+                    updateHistoryVisibility()
 
-                val intent = Intent(this, PlayerActivity::class.java)
-                intent.putExtra("track", track)
-                startActivity(intent)
+                    val intent = Intent(this, PlayerActivity::class.java)
+                    intent.putExtra("track", track)
+                    startActivity(intent)
+                }
             },
             onClearHistoryClick = {
                 searchHistory.clearHistory()
@@ -161,6 +195,15 @@ class SearchActivity : AppCompatActivity() {
 
         historyRecyclerView.layoutManager = LinearLayoutManager(this)
         historyRecyclerView.adapter = historyAdapter
+    }
+
+    private fun clickDebounce(): Boolean {
+        val current = isClickAllowed
+        if (isClickAllowed) {
+            isClickAllowed = false
+            handler.postDelayed({ isClickAllowed = true }, clickDebounceDelay)
+        }
+        return current
     }
 
     private fun updateHistoryVisibility() {
@@ -313,6 +356,7 @@ class SearchActivity : AppCompatActivity() {
         searchAdapter.updateTracks(emptyList())
 
         currentSearchCall?.cancel()
+        searchRunnable?.let { handler.removeCallbacks(it) }
     }
 
     override fun onResume() {
@@ -337,9 +381,5 @@ class SearchActivity : AppCompatActivity() {
         searchEditText.setText(savedSearchQuery)
         clearButton.visibility = if (savedSearchQuery.isEmpty()) View.GONE else View.VISIBLE
         updateHistoryVisibility()
-    }
-
-    companion object {
-        private const val SEARCH_QUERY_KEY = "SEARCH_QUERY"
     }
 }

@@ -1,6 +1,6 @@
 package com.example.playlistmaker
 
-import android.content.res.Configuration
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class PlayerActivity : AppCompatActivity() {
 
@@ -28,27 +30,18 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var yearValue: TextView
     private lateinit var genreValue: TextView
     private lateinit var countryValue: TextView
-    private lateinit var durationLabel: TextView
     private lateinit var albumLabel: TextView
     private lateinit var yearLabel: TextView
     private lateinit var genreLabel: TextView
     private lateinit var countryLabel: TextView
+    private lateinit var currentTimeTextView: TextView
 
+    private var mediaPlayer: MediaPlayer? = null
     private var isPlaying = false
-    private var currentPosition = 0
-    private var totalDuration = 0
     private val handler = Handler(Looper.getMainLooper())
-    private val updateProgressRunnable = object : Runnable {
-        override fun run() {
-            if (isPlaying && currentPosition < totalDuration) {
-                currentPosition += 1000
-                updateProgress()
-                handler.postDelayed(this, 1000)
-            }
-        }
-    }
+    private var updateProgressRunnable: Runnable? = null
 
-    private var isFavorite = false
+    private var currentTrack: Track? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,15 +50,13 @@ class PlayerActivity : AppCompatActivity() {
         initViews()
         setupClickListeners()
 
-        val track = intent.getSerializableExtra("track") as? Track
-        track?.let {
+        currentTrack = intent.getSerializableExtra("track") as? Track
+        currentTrack?.let {
             displayTrackInfo(it)
-            totalDuration = it.trackTimeMillis.toInt()
-            updateTotalTime()
+            setupMediaPlayer(it.previewUrl)
         }
 
-        updatePlayPauseButton()
-        updateFavoriteButton()
+        addLifecycleCallbacks()
     }
 
     private fun initViews() {
@@ -74,7 +65,7 @@ class PlayerActivity : AppCompatActivity() {
         trackNameTextView = findViewById(R.id.trackNameTextView)
         artistNameTextView = findViewById(R.id.artistNameTextView)
         trackDurationTextView = findViewById(R.id.trackDurationTextView)
-        addToPlaylistButton = findViewById(/* id = */ R.id.addToPlaylistButton)
+        addToPlaylistButton = findViewById(R.id.addToPlaylistButton)
         favoriteButton = findViewById(R.id.favoriteButton)
         playPauseButton = findViewById(R.id.playPauseButton)
 
@@ -84,15 +75,16 @@ class PlayerActivity : AppCompatActivity() {
         genreValue = findViewById(R.id.genreValue)
         countryValue = findViewById(R.id.countryValue)
 
-        durationLabel = findViewById(R.id.durationLabel)
         albumLabel = findViewById(R.id.albumLabel)
         yearLabel = findViewById(R.id.yearLabel)
         genreLabel = findViewById(R.id.genreLabel)
         countryLabel = findViewById(R.id.countryLabel)
+        currentTimeTextView = findViewById(R.id.currentTimeTextView)
     }
 
     private fun setupClickListeners() {
         backButton.setOnClickListener {
+            releaseMediaPlayer()
             finish()
         }
 
@@ -101,11 +93,138 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         addToPlaylistButton.setOnClickListener {
+            // TODO: Реализовать добавление в плейлист
         }
 
         favoriteButton.setOnClickListener {
-            toggleFavorite()
+            // TODO: Реализовать добавление в избранное
         }
+    }
+
+    private fun setupMediaPlayer(previewUrl: String?) {
+        if (previewUrl.isNullOrEmpty()) {
+            playPauseButton.isEnabled = false
+            return
+        }
+
+        try {
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(previewUrl)
+                prepareAsync()
+
+                setOnPreparedListener {
+                    playPauseButton.isEnabled = true
+                }
+
+                setOnCompletionListener {
+                    onPlaybackComplete()
+                }
+
+                setOnErrorListener { _, what, extra ->
+                    playPauseButton.isEnabled = false
+                    false
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            playPauseButton.isEnabled = false
+        }
+    }
+
+    private fun togglePlayPause() {
+        if (mediaPlayer == null) return
+
+        if (isPlaying) {
+            pausePlayback()
+        } else {
+            startPlayback()
+        }
+    }
+
+    private fun startPlayback() {
+        mediaPlayer?.apply {
+            if (!isPlaying) {
+                start()
+                this@PlayerActivity.isPlaying = true
+                playPauseButton.setImageResource(R.drawable.ic_pause_84)
+                startProgressUpdate()
+            }
+        }
+    }
+
+    private fun pausePlayback() {
+        mediaPlayer?.apply {
+            if (isPlaying) {
+                pause()
+                this@PlayerActivity.isPlaying = false
+                playPauseButton.setImageResource(R.drawable.ic_play_84)
+                stopProgressUpdate()
+            }
+        }
+    }
+
+    private fun onPlaybackComplete() {
+        isPlaying = false
+        playPauseButton.setImageResource(R.drawable.ic_play_84)
+        stopProgressUpdate()
+        updateCurrentTime(0)
+
+        mediaPlayer?.apply {
+            seekTo(0)
+        }
+    }
+
+    private fun startProgressUpdate() {
+        updateProgressRunnable = object : Runnable {
+            override fun run() {
+                mediaPlayer?.let { player ->
+                    if (player.isPlaying) {
+                        val currentPosition = player.currentPosition
+                        updateCurrentTime(currentPosition)
+                        handler.postDelayed(this, 500) // Обновляем каждые 500 мс
+                    }
+                }
+            }
+        }
+        handler.post(updateProgressRunnable!!)
+    }
+
+    private fun stopProgressUpdate() {
+        updateProgressRunnable?.let { handler.removeCallbacks(it) }
+        updateProgressRunnable = null
+    }
+
+    private fun updateCurrentTime(positionMs: Int) {
+        val formatter = SimpleDateFormat("mm:ss", Locale.getDefault())
+        currentTimeTextView.text = formatter.format(positionMs)
+    }
+
+    private fun releaseMediaPlayer() {
+        stopProgressUpdate()
+        mediaPlayer?.apply {
+            if (isPlaying) {
+                stop()
+            }
+            release()
+        }
+        mediaPlayer = null
+        isPlaying = false
+    }
+
+    private fun addLifecycleCallbacks() {
+
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (isPlaying) {
+            pausePlayback()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        releaseMediaPlayer()
     }
 
     private fun displayTrackInfo(track: Track) {
@@ -172,65 +291,14 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun togglePlayPause() {
-        isPlaying = !isPlaying
-        updatePlayPauseButton()
-
-        if (isPlaying) {
-            handler.postDelayed(updateProgressRunnable, 1000)
-        } else {
-            handler.removeCallbacks(updateProgressRunnable)
-            currentPosition = 0
-        }
-    }
-
-    private fun updatePlayPauseButton() {
-        if (isPlaying) {
-            playPauseButton.setImageResource(R.drawable.ic_pause_84)
-        } else {
-            playPauseButton.setImageResource(R.drawable.ic_play_84)
-        }
-    }
-
-    private fun toggleFavorite() {
-        isFavorite = !isFavorite
-        updateFavoriteButton()
-    }
-
-    private fun updateFavoriteButton() {
-        val favoriteIconRes = if (isFavorite) {
-            R.drawable.ic_favorite_active_51
-        } else {
-            R.drawable.ic_favorite_51
-        }
-        favoriteButton.setImageResource(favoriteIconRes)
-    }
-
-    private fun updateProgress() {
-        val minutes = currentPosition / 1000 / 60
-        val seconds = currentPosition / 1000 % 60
-        trackDurationTextView.text = String.format("%02d:%02d", minutes, seconds)
-    }
-
-    private fun updateTotalTime() {
-        val minutes = totalDuration / 1000 / 60
-        val seconds = totalDuration / 1000 % 60
-        trackDurationTextView.text = String.format("%02d:%02d", minutes, seconds)
-    }
-
     private fun isDarkThemeEnabled(): Boolean {
-        return when (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
-            Configuration.UI_MODE_NIGHT_YES -> true
+        return when (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) {
+            android.content.res.Configuration.UI_MODE_NIGHT_YES -> true
             else -> false
         }
     }
 
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        handler.removeCallbacks(updateProgressRunnable)
     }
 }
