@@ -9,6 +9,9 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
@@ -45,8 +48,10 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_player)
 
+        setupWindowInsets()
         initViews()
         setupClickListeners()
 
@@ -55,8 +60,21 @@ class PlayerActivity : AppCompatActivity() {
             displayTrackInfo(it)
             setupMediaPlayer(it.previewUrl)
         }
+    }
 
-        addLifecycleCallbacks()
+    private fun enableEdgeToEdge() {
+        window.decorView.systemUiVisibility = (
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                        android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                )
+    }
+
+    private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
+            val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            view.updatePadding(top = statusBarInsets.top)
+            insets
+        }
     }
 
     private fun initViews() {
@@ -93,11 +111,9 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         addToPlaylistButton.setOnClickListener {
-            // TODO: Реализовать добавление в плейлист
         }
 
         favoriteButton.setOnClickListener {
-            // TODO: Реализовать добавление в избранное
         }
     }
 
@@ -147,6 +163,7 @@ class PlayerActivity : AppCompatActivity() {
                 start()
                 this@PlayerActivity.isPlaying = true
                 playPauseButton.setImageResource(R.drawable.ic_pause_84)
+                showCurrentTime()
                 startProgressUpdate()
             }
         }
@@ -159,6 +176,7 @@ class PlayerActivity : AppCompatActivity() {
                 this@PlayerActivity.isPlaying = false
                 playPauseButton.setImageResource(R.drawable.ic_play_84)
                 stopProgressUpdate()
+                showTotalDuration()
             }
         }
     }
@@ -167,7 +185,7 @@ class PlayerActivity : AppCompatActivity() {
         isPlaying = false
         playPauseButton.setImageResource(R.drawable.ic_play_84)
         stopProgressUpdate()
-        updateCurrentTime(0)
+        showTotalDuration()
 
         mediaPlayer?.apply {
             seekTo(0)
@@ -181,7 +199,7 @@ class PlayerActivity : AppCompatActivity() {
                     if (player.isPlaying) {
                         val currentPosition = player.currentPosition
                         updateCurrentTime(currentPosition)
-                        handler.postDelayed(this, 500) // Обновляем каждые 500 мс
+                        handler.postDelayed(this, 500)
                     }
                 }
             }
@@ -199,6 +217,16 @@ class PlayerActivity : AppCompatActivity() {
         currentTimeTextView.text = formatter.format(positionMs)
     }
 
+    private fun showCurrentTime() {
+        trackDurationTextView.visibility = View.GONE
+        currentTimeTextView.visibility = View.VISIBLE
+    }
+
+    private fun showTotalDuration() {
+        trackDurationTextView.visibility = View.VISIBLE
+        currentTimeTextView.visibility = View.GONE
+    }
+
     private fun releaseMediaPlayer() {
         stopProgressUpdate()
         mediaPlayer?.apply {
@@ -209,10 +237,6 @@ class PlayerActivity : AppCompatActivity() {
         }
         mediaPlayer = null
         isPlaying = false
-    }
-
-    private fun addLifecycleCallbacks() {
-
     }
 
     override fun onPause() {
@@ -230,8 +254,12 @@ class PlayerActivity : AppCompatActivity() {
     private fun displayTrackInfo(track: Track) {
         trackNameTextView.text = track.trackName
         artistNameTextView.text = track.artistName
-        trackDurationTextView.text = track.getFormattedTime()
-        durationValue.text = track.getFormattedTime()
+
+        val formattedTime = track.getFormattedTime()
+        trackDurationTextView.text = formattedTime
+        durationValue.text = formattedTime
+
+        showTotalDuration()
 
         if (!track.collectionName.isNullOrEmpty()) {
             albumValue.text = track.collectionName

@@ -16,7 +16,9 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.widget.doOnTextChanged
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
@@ -52,22 +54,25 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var searchAdapter: TrackAdapter
     private lateinit var historyAdapter: HistoryAdapter
 
-    // Для debounce
     private val handler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
 
-    // Для debounce кликов
     private var isClickAllowed = true
     private val clickDebounceDelay = 1000L
+    private var currentTracks: List<Track> = emptyList()
 
     companion object {
         private const val SEARCH_QUERY_KEY = "SEARCH_QUERY"
+        private const val SEARCH_RESULTS_KEY = "SEARCH_RESULTS"
         private const val SEARCH_DEBOUNCE_DELAY = 2000L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_search)
+
+        setupWindowInsets()
 
         searchHistory = SearchHistory(
             getSharedPreferences("search_history", MODE_PRIVATE)
@@ -79,6 +84,60 @@ class SearchActivity : AppCompatActivity() {
         setupRecyclerViews()
 
         updateHistoryVisibility()
+
+        if (savedInstanceState != null) {
+            val savedQuery = savedInstanceState.getString(SEARCH_QUERY_KEY, "")
+            val savedTracks = savedInstanceState.getSerializable(SEARCH_RESULTS_KEY) as? List<Track>
+
+            if (!savedQuery.isNullOrEmpty()) {
+                searchEditText.setText(savedQuery)
+                searchQuery = savedQuery
+                clearButton.visibility = View.VISIBLE
+
+                if (!savedTracks.isNullOrEmpty()) {
+                    currentTracks = savedTracks
+                    showTracks(currentTracks)
+                }
+            }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(SEARCH_QUERY_KEY, searchQuery)
+        if (currentTracks.isNotEmpty()) {
+            outState.putSerializable(SEARCH_RESULTS_KEY, ArrayList(currentTracks))
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (nothingFoundLayout.visibility == View.VISIBLE) {
+            updateNothingFoundView()
+        }
+        if (errorLayout.visibility == View.VISIBLE) {
+            updateErrorView()
+        }
+        updateHistoryVisibility()
+
+        if (currentTracks.isNotEmpty() && tracksRecyclerView.visibility != View.VISIBLE) {
+            showTracks(currentTracks)
+        }
+    }
+
+    private fun enableEdgeToEdge() {
+        window.decorView.systemUiVisibility = (
+                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                        android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                )
+    }
+
+    private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
+            val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            view.updatePadding(top = statusBarInsets.top)
+            insets
+        }
     }
 
     private fun initViews() {
@@ -137,7 +196,6 @@ class SearchActivity : AppCompatActivity() {
                 searchQuery = s?.toString() ?: ""
                 clearButton.visibility = if (searchQuery.isNotEmpty()) View.VISIBLE else View.GONE
 
-                // Debounce для поиска
                 searchRunnable?.let { handler.removeCallbacks(it) }
 
                 if (searchQuery.isNotEmpty()) {
@@ -279,6 +337,7 @@ class SearchActivity : AppCompatActivity() {
         errorLayout.visibility = View.GONE
         historyLayout.visibility = View.GONE
 
+        currentTracks = tracks
         searchAdapter.updateTracks(tracks)
     }
 
@@ -289,6 +348,7 @@ class SearchActivity : AppCompatActivity() {
         nothingFoundLayout.visibility = View.VISIBLE
         errorLayout.visibility = View.GONE
         historyLayout.visibility = View.GONE
+        currentTracks = emptyList()
 
         nothingFoundText.text = getString(R.string.nothing_found)
         updateNothingFoundView()
@@ -301,6 +361,7 @@ class SearchActivity : AppCompatActivity() {
         nothingFoundLayout.visibility = View.GONE
         errorLayout.visibility = View.VISIBLE
         historyLayout.visibility = View.GONE
+        currentTracks = emptyList()
 
         updateErrorView()
     }
@@ -354,32 +415,9 @@ class SearchActivity : AppCompatActivity() {
         searchEditText.clearFocus()
         updateHistoryVisibility()
         searchAdapter.updateTracks(emptyList())
+        currentTracks = emptyList()
 
         currentSearchCall?.cancel()
         searchRunnable?.let { handler.removeCallbacks(it) }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (nothingFoundLayout.visibility == View.VISIBLE) {
-            updateNothingFoundView()
-        }
-        if (errorLayout.visibility == View.VISIBLE) {
-            updateErrorView()
-        }
-        updateHistoryVisibility()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString(SEARCH_QUERY_KEY, searchQuery)
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-        val savedSearchQuery = savedInstanceState.getString(SEARCH_QUERY_KEY, "")
-        searchEditText.setText(savedSearchQuery)
-        clearButton.visibility = if (savedSearchQuery.isEmpty()) View.GONE else View.VISIBLE
-        updateHistoryVisibility()
     }
 }
