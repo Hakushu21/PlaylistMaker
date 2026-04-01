@@ -7,4 +7,5 @@ interface TrackRepository {
     fun saveSearchHistory(tracks: List<Track>)
     fun getSearchHistory(): List<Track>
     fun clearSearchHistory()
+    fun addTrackToHistory(track: Track)
 }

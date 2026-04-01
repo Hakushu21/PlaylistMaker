@@ -102,33 +102,11 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString(SEARCH_QUERY_KEY, searchQuery)
-        if (currentTracks.isNotEmpty()) {
-            outState.putSerializable(SEARCH_RESULTS_KEY, ArrayList(currentTracks))
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (nothingFoundLayout.visibility == View.VISIBLE) {
-            updateNothingFoundView()
-        }
-        if (errorLayout.visibility == View.VISIBLE) {
-            updateErrorView()
-        }
-        updateHistoryVisibility()
-
-        if (currentTracks.isNotEmpty() && tracksRecyclerView.visibility != View.VISIBLE) {
-            showTracks(currentTracks)
-        }
-    }
-
+    // Своя реализация enableEdgeToEdge
     private fun enableEdgeToEdge() {
         window.decorView.systemUiVisibility = (
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                        android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 )
     }
 

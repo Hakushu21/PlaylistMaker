@@ -10,7 +10,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.IOException
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 class TrackRepositoryImpl(
@@ -43,15 +42,22 @@ class TrackRepositoryImpl(
     }
 
     override fun saveSearchHistory(tracks: List<Track>) {
-        searchHistoryStorage.saveHistory(tracks)
+        val trackDtos = tracks.map { mapToDto(it) }
+        searchHistoryStorage.saveHistory(trackDtos)
     }
 
     override fun getSearchHistory(): List<Track> {
-        return searchHistoryStorage.getHistory()
+        val trackDtos = searchHistoryStorage.getHistory()
+        return trackDtos.map { mapToDomain(it) }
     }
 
     override fun clearSearchHistory() {
         searchHistoryStorage.clearHistory()
+    }
+
+    override fun addTrackToHistory(track: Track) {
+        val trackDto = mapToDto(track)
+        searchHistoryStorage.addTrack(trackDto)
     }
 
     private fun mapToDomain(dto: TrackDto): Track {
@@ -66,6 +72,21 @@ class TrackRepositoryImpl(
             primaryGenreName = dto.primaryGenreName,
             country = dto.country,
             previewUrl = dto.previewUrl
+        )
+    }
+
+    private fun mapToDto(track: Track): TrackDto {
+        return TrackDto(
+            trackId = track.trackId,
+            trackName = track.trackName,
+            artistName = track.artistName,
+            trackTimeMillis = track.trackTimeMillis,
+            artworkUrl100 = track.artworkUrl100,
+            collectionName = track.collectionName,
+            releaseDate = track.releaseDate,
+            primaryGenreName = track.primaryGenreName,
+            country = track.country,
+            previewUrl = track.previewUrl
         )
     }
 }

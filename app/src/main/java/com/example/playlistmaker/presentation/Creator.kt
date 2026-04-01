@@ -9,6 +9,8 @@ import com.example.playlistmaker.data.repository.ThemeRepositoryImpl
 import com.example.playlistmaker.data.storage.SearchHistoryStorage
 import com.example.playlistmaker.domain.interactor.SearchInteractor
 import com.example.playlistmaker.domain.interactor.ThemeInteractor
+import com.example.playlistmaker.domain.repository.TrackRepository
+import com.example.playlistmaker.domain.repository.ThemeRepository
 
 object Creator {
     private lateinit var context: Context
@@ -25,16 +27,16 @@ object Creator {
         SearchHistoryStorage(sharedPreferences)
     }
 
-    private val trackRepository: TrackRepositoryImpl by lazy {
+    private val trackRepository: TrackRepository by lazy {
         TrackRepositoryImpl(searchHistoryStorage)
     }
 
-    private val themeRepository: ThemeRepositoryImpl by lazy {
+    private val themeRepository: ThemeRepository by lazy {
         ThemeRepositoryImpl(sharedPreferences)
     }
 
     fun provideSearchInteractor(): SearchInteractor {
-        return SearchInteractorImpl(trackRepository, searchHistoryStorage)
+        return SearchInteractorImpl(trackRepository)
     }
 
     fun provideThemeInteractor(): ThemeInteractor {
