@@ -1,4 +1,4 @@
-package com.example.playlistmaker
+package com.example.playlistmaker.presentation.ui.search
 
 import android.content.Intent
 import android.content.res.Configuration
@@ -19,12 +19,17 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.playlistmaker.R
+import com.example.playlistmaker.domain.models.Track
+import com.example.playlistmaker.presentation.Creator
+import com.example.playlistmaker.presentation.adapters.HistoryAdapter
+import com.example.playlistmaker.presentation.adapters.TrackAdapter
+import com.example.playlistmaker.presentation.ui.player.PlayerActivity
 import com.google.android.material.button.MaterialButton
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.coroutines.launch
 
 class SearchActivity : AppCompatActivity() {
 
@@ -47,8 +52,6 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var historyLayout: View
 
     private var searchQuery: String = ""
-    private var currentSearchCall: Call<SearchResponse>? = null
-    private lateinit var searchHistory: SearchHistory
     private var lastFailedQuery: String? = null
 
     private lateinit var searchAdapter: TrackAdapter
@@ -60,6 +63,8 @@ class SearchActivity : AppCompatActivity() {
     private var isClickAllowed = true
     private val clickDebounceDelay = 1000L
     private var currentTracks: List<Track> = emptyList()
+
+    private val searchInteractor = Creator.provideSearchInteractor()
 
     companion object {
         private const val SEARCH_QUERY_KEY = "SEARCH_QUERY"
@@ -73,11 +78,6 @@ class SearchActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search)
 
         setupWindowInsets()
-
-        searchHistory = SearchHistory(
-            getSharedPreferences("search_history", MODE_PRIVATE)
-        )
-
         initViews()
         setupClickListeners()
         setupSearchField()
@@ -220,7 +220,7 @@ class SearchActivity : AppCompatActivity() {
     private fun setupRecyclerViews() {
         searchAdapter = TrackAdapter(emptyList()) { track ->
             if (clickDebounce()) {
-                searchHistory.addTrack(track)
+                searchInteractor.addTrackToHistory(track)
                 updateHistoryVisibility()
 
                 val intent = Intent(this, PlayerActivity::class.java)
@@ -236,7 +236,7 @@ class SearchActivity : AppCompatActivity() {
             emptyList(),
             onTrackClick = { track ->
                 if (clickDebounce()) {
-                    searchHistory.addTrack(track)
+                    searchInteractor.addTrackToHistory(track)
                     updateHistoryVisibility()
 
                     val intent = Intent(this, PlayerActivity::class.java)
@@ -245,7 +245,7 @@ class SearchActivity : AppCompatActivity() {
                 }
             },
             onClearHistoryClick = {
-                searchHistory.clearHistory()
+                searchInteractor.clearSearchHistory()
                 historyAdapter.clearHistory()
                 updateHistoryVisibility()
             }
@@ -267,7 +267,7 @@ class SearchActivity : AppCompatActivity() {
     private fun updateHistoryVisibility() {
         val hasFocus = searchEditText.hasFocus()
         val isEmpty = searchEditText.text.isNullOrEmpty()
-        val history = searchHistory.getHistory()
+        val history = searchInteractor.getSearchHistory()
 
         startSearchLayout.visibility = View.GONE
         historyLayout.visibility = View.GONE
@@ -293,31 +293,18 @@ class SearchActivity : AppCompatActivity() {
         showLoading()
         lastFailedQuery = query
 
-        currentSearchCall?.cancel()
-
-        currentSearchCall = NetworkClient.itunesApi.search(query)
-        currentSearchCall?.enqueue(object : Callback<SearchResponse> {
-            override fun onResponse(call: Call<SearchResponse>, response: Response<SearchResponse>) {
-                if (response.isSuccessful) {
-                    val searchResponse = response.body()
-                    val tracks = searchResponse?.results ?: emptyList()
-
-                    if (tracks.isNotEmpty()) {
-                        showTracks(tracks)
-                    } else {
-                        showEmptyResults()
-                    }
+        lifecycleScope.launch {
+            val result = searchInteractor.searchTracks(query)
+            result.onSuccess { tracks ->
+                if (tracks.isNotEmpty()) {
+                    showTracks(tracks)
                 } else {
-                    showError()
+                    showEmptyResults()
                 }
+            }.onFailure {
+                showError()
             }
-
-            override fun onFailure(call: Call<SearchResponse>, t: Throwable) {
-                if (!call.isCanceled) {
-                    showError()
-                }
-            }
-        })
+        }
     }
 
     private fun showLoading() {
@@ -417,7 +404,6 @@ class SearchActivity : AppCompatActivity() {
         searchAdapter.updateTracks(emptyList())
         currentTracks = emptyList()
 
-        currentSearchCall?.cancel()
         searchRunnable?.let { handler.removeCallbacks(it) }
     }
 }

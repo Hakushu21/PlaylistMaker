@@ -50,8 +50,7 @@ dependencies {
 
     implementation("com.google.code.gson:gson:2.10.1")
 
-    implementation(libs.glide)
-    annotationProcessor(libs.glide.compiler)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -1,9 +1,11 @@
-package com.example.playlistmaker
+package com.example.playlistmaker.presentation.adapters
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.example.playlistmaker.R
+import com.example.playlistmaker.domain.models.Track
 import com.google.android.material.button.MaterialButton
 
 class HistoryAdapter(
@@ -57,10 +59,6 @@ class HistoryAdapter(
             is ClearButtonViewHolder -> {
                 holder.clearButton.setOnClickListener {
                     onClearHistoryClick()
-                }
-
-                holder.itemView.setOnClickListener {
-                    println("DEBUG: Clear history item clicked (not button)")
                 }
             }
         }
