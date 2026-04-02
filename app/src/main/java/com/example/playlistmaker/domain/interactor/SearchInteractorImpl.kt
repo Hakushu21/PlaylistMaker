@@ -1,6 +1,5 @@
-package com.example.playlistmaker.data.interactor
+package com.example.playlistmaker.domain.interactor
 
-import com.example.playlistmaker.domain.interactor.SearchInteractor
 import com.example.playlistmaker.domain.models.Track
 import com.example.playlistmaker.domain.repository.TrackRepository
 

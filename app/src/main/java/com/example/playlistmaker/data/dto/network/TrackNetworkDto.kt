@@ -1,8 +1,8 @@
-package com.example.playlistmaker.data.dto
+package com.example.playlistmaker.data.dto.network
 
 import com.google.gson.annotations.SerializedName
 
-data class TrackDto(
+data class TrackNetworkDto(
     @SerializedName("trackId")
     val trackId: Long,
 

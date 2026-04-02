@@ -1,6 +1,7 @@
 package com.example.playlistmaker.data.repository
 
-import com.example.playlistmaker.data.dto.TrackDto
+import com.example.playlistmaker.data.dto.network.TrackNetworkDto
+import com.example.playlistmaker.data.dto.storage.TrackStorageDto
 import com.example.playlistmaker.data.network.NetworkClient
 import com.example.playlistmaker.data.storage.SearchHistoryStorage
 import com.example.playlistmaker.domain.models.Track
@@ -18,14 +19,14 @@ class TrackRepositoryImpl(
 
     override suspend fun searchTracks(query: String): Result<List<Track>> = suspendCoroutine { continuation ->
         val call = NetworkClient.itunesApi.search(query)
-        call.enqueue(object : Callback<com.example.playlistmaker.data.dto.SearchResponseDto> {
+        call.enqueue(object : Callback<com.example.playlistmaker.data.dto.network.SearchResponseNetworkDto> {
             override fun onResponse(
-                call: Call<com.example.playlistmaker.data.dto.SearchResponseDto>,
-                response: Response<com.example.playlistmaker.data.dto.SearchResponseDto>
+                call: Call<com.example.playlistmaker.data.dto.network.SearchResponseNetworkDto>,
+                response: Response<com.example.playlistmaker.data.dto.network.SearchResponseNetworkDto>
             ) {
                 if (response.isSuccessful) {
-                    val trackDtos = response.body()?.results ?: emptyList()
-                    val tracks = trackDtos.map { mapToDomain(it) }
+                    val trackNetworkDtos = response.body()?.results ?: emptyList()
+                    val tracks = trackNetworkDtos.map { mapNetworkToDomain(it) }
                     continuation.resume(Result.success(tracks))
                 } else {
                     continuation.resume(Result.failure(IOException("Network error")))
@@ -33,7 +34,7 @@ class TrackRepositoryImpl(
             }
 
             override fun onFailure(
-                call: Call<com.example.playlistmaker.data.dto.SearchResponseDto>,
+                call: Call<com.example.playlistmaker.data.dto.network.SearchResponseNetworkDto>,
                 t: Throwable
             ) {
                 continuation.resume(Result.failure(t))
@@ -42,13 +43,13 @@ class TrackRepositoryImpl(
     }
 
     override fun saveSearchHistory(tracks: List<Track>) {
-        val trackDtos = tracks.map { mapToDto(it) }
-        searchHistoryStorage.saveHistory(trackDtos)
+        val trackStorageDtos = tracks.map { mapDomainToStorage(it) }
+        searchHistoryStorage.saveHistory(trackStorageDtos)
     }
 
     override fun getSearchHistory(): List<Track> {
-        val trackDtos = searchHistoryStorage.getHistory()
-        return trackDtos.map { mapToDomain(it) }
+        val trackStorageDtos = searchHistoryStorage.getHistory()
+        return trackStorageDtos.map { mapStorageToDomain(it) }
     }
 
     override fun clearSearchHistory() {
@@ -56,27 +57,28 @@ class TrackRepositoryImpl(
     }
 
     override fun addTrackToHistory(track: Track) {
-        val trackDto = mapToDto(track)
-        searchHistoryStorage.addTrack(trackDto)
+        val trackStorageDto = mapDomainToStorage(track)
+        searchHistoryStorage.addTrack(trackStorageDto)
     }
 
-    private fun mapToDomain(dto: TrackDto): Track {
+
+    private fun mapNetworkToDomain(networkDto: TrackNetworkDto): Track {
         return Track(
-            trackId = dto.trackId,
-            trackName = dto.trackName,
-            artistName = dto.artistName,
-            trackTimeMillis = dto.trackTimeMillis,
-            artworkUrl100 = dto.artworkUrl100,
-            collectionName = dto.collectionName,
-            releaseDate = dto.releaseDate,
-            primaryGenreName = dto.primaryGenreName,
-            country = dto.country,
-            previewUrl = dto.previewUrl
+            trackId = networkDto.trackId,
+            trackName = networkDto.trackName,
+            artistName = networkDto.artistName,
+            trackTimeMillis = networkDto.trackTimeMillis,
+            artworkUrl100 = networkDto.artworkUrl100,
+            collectionName = networkDto.collectionName,
+            releaseDate = networkDto.releaseDate,
+            primaryGenreName = networkDto.primaryGenreName,
+            country = networkDto.country,
+            previewUrl = networkDto.previewUrl
         )
     }
 
-    private fun mapToDto(track: Track): TrackDto {
-        return TrackDto(
+    private fun mapDomainToStorage(track: Track): TrackStorageDto {
+        return TrackStorageDto(
             trackId = track.trackId,
             trackName = track.trackName,
             artistName = track.artistName,
@@ -87,6 +89,21 @@ class TrackRepositoryImpl(
             primaryGenreName = track.primaryGenreName,
             country = track.country,
             previewUrl = track.previewUrl
+        )
+    }
+
+    private fun mapStorageToDomain(storageDto: TrackStorageDto): Track {
+        return Track(
+            trackId = storageDto.trackId,
+            trackName = storageDto.trackName,
+            artistName = storageDto.artistName,
+            trackTimeMillis = storageDto.trackTimeMillis,
+            artworkUrl100 = storageDto.artworkUrl100,
+            collectionName = storageDto.collectionName,
+            releaseDate = storageDto.releaseDate,
+            primaryGenreName = storageDto.primaryGenreName,
+            country = storageDto.country,
+            previewUrl = storageDto.previewUrl
         )
     }
 }

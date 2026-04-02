@@ -1,6 +1,6 @@
 package com.example.playlistmaker.data.network
 
-import com.example.playlistmaker.data.dto.SearchResponseDto
+import com.example.playlistmaker.data.dto.network.SearchResponseNetworkDto
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Query
@@ -11,5 +11,5 @@ interface ItunesApi {
         @Query("term") text: String,
         @Query("entity") entity: String = "song",
         @Query("limit") limit: Int = 50
-    ): Call<SearchResponseDto>
+    ): Call<SearchResponseNetworkDto>
 }
