@@ -1,4 +1,4 @@
-package com.example.playlistmaker
+package com.example.playlistmaker.presentation.ui.search
 
 import android.content.Intent
 import android.content.res.Configuration
@@ -16,13 +16,20 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.widget.doOnTextChanged
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.playlistmaker.R
+import com.example.playlistmaker.domain.models.Track
+import com.example.playlistmaker.presentation.Creator
+import com.example.playlistmaker.presentation.adapters.HistoryAdapter
+import com.example.playlistmaker.presentation.adapters.TrackAdapter
+import com.example.playlistmaker.presentation.ui.player.PlayerActivity
 import com.google.android.material.button.MaterialButton
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.coroutines.launch
 
 class SearchActivity : AppCompatActivity() {
 
@@ -45,40 +52,70 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var historyLayout: View
 
     private var searchQuery: String = ""
-    private var currentSearchCall: Call<SearchResponse>? = null
-    private lateinit var searchHistory: SearchHistory
     private var lastFailedQuery: String? = null
 
     private lateinit var searchAdapter: TrackAdapter
     private lateinit var historyAdapter: HistoryAdapter
 
-    // Для debounce
     private val handler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
 
-    // Для debounce кликов
     private var isClickAllowed = true
     private val clickDebounceDelay = 1000L
+    private var currentTracks: List<Track> = emptyList()
+
+    private val searchInteractor = Creator.provideSearchInteractor()
 
     companion object {
         private const val SEARCH_QUERY_KEY = "SEARCH_QUERY"
+        private const val SEARCH_RESULTS_KEY = "SEARCH_RESULTS"
         private const val SEARCH_DEBOUNCE_DELAY = 2000L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContentView(R.layout.activity_search)
 
-        searchHistory = SearchHistory(
-            getSharedPreferences("search_history", MODE_PRIVATE)
-        )
-
+        setupWindowInsets()
         initViews()
         setupClickListeners()
         setupSearchField()
         setupRecyclerViews()
 
         updateHistoryVisibility()
+
+        if (savedInstanceState != null) {
+            val savedQuery = savedInstanceState.getString(SEARCH_QUERY_KEY, "")
+            val savedTracks = savedInstanceState.getSerializable(SEARCH_RESULTS_KEY) as? List<Track>
+
+            if (!savedQuery.isNullOrEmpty()) {
+                searchEditText.setText(savedQuery)
+                searchQuery = savedQuery
+                clearButton.visibility = View.VISIBLE
+
+                if (!savedTracks.isNullOrEmpty()) {
+                    currentTracks = savedTracks
+                    showTracks(currentTracks)
+                }
+            }
+        }
+    }
+
+    // Своя реализация enableEdgeToEdge
+    private fun enableEdgeToEdge() {
+        window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                )
+    }
+
+    private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
+            val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            view.updatePadding(top = statusBarInsets.top)
+            insets
+        }
     }
 
     private fun initViews() {
@@ -137,7 +174,6 @@ class SearchActivity : AppCompatActivity() {
                 searchQuery = s?.toString() ?: ""
                 clearButton.visibility = if (searchQuery.isNotEmpty()) View.VISIBLE else View.GONE
 
-                // Debounce для поиска
                 searchRunnable?.let { handler.removeCallbacks(it) }
 
                 if (searchQuery.isNotEmpty()) {
@@ -162,7 +198,7 @@ class SearchActivity : AppCompatActivity() {
     private fun setupRecyclerViews() {
         searchAdapter = TrackAdapter(emptyList()) { track ->
             if (clickDebounce()) {
-                searchHistory.addTrack(track)
+                searchInteractor.addTrackToHistory(track)
                 updateHistoryVisibility()
 
                 val intent = Intent(this, PlayerActivity::class.java)
@@ -178,7 +214,7 @@ class SearchActivity : AppCompatActivity() {
             emptyList(),
             onTrackClick = { track ->
                 if (clickDebounce()) {
-                    searchHistory.addTrack(track)
+                    searchInteractor.addTrackToHistory(track)
                     updateHistoryVisibility()
 
                     val intent = Intent(this, PlayerActivity::class.java)
@@ -187,7 +223,7 @@ class SearchActivity : AppCompatActivity() {
                 }
             },
             onClearHistoryClick = {
-                searchHistory.clearHistory()
+                searchInteractor.clearSearchHistory()
                 historyAdapter.clearHistory()
                 updateHistoryVisibility()
             }
@@ -209,7 +245,7 @@ class SearchActivity : AppCompatActivity() {
     private fun updateHistoryVisibility() {
         val hasFocus = searchEditText.hasFocus()
         val isEmpty = searchEditText.text.isNullOrEmpty()
-        val history = searchHistory.getHistory()
+        val history = searchInteractor.getSearchHistory()
 
         startSearchLayout.visibility = View.GONE
         historyLayout.visibility = View.GONE
@@ -235,31 +271,18 @@ class SearchActivity : AppCompatActivity() {
         showLoading()
         lastFailedQuery = query
 
-        currentSearchCall?.cancel()
-
-        currentSearchCall = NetworkClient.itunesApi.search(query)
-        currentSearchCall?.enqueue(object : Callback<SearchResponse> {
-            override fun onResponse(call: Call<SearchResponse>, response: Response<SearchResponse>) {
-                if (response.isSuccessful) {
-                    val searchResponse = response.body()
-                    val tracks = searchResponse?.results ?: emptyList()
-
-                    if (tracks.isNotEmpty()) {
-                        showTracks(tracks)
-                    } else {
-                        showEmptyResults()
-                    }
+        lifecycleScope.launch {
+            val result = searchInteractor.searchTracks(query)
+            result.onSuccess { tracks ->
+                if (tracks.isNotEmpty()) {
+                    showTracks(tracks)
                 } else {
-                    showError()
+                    showEmptyResults()
                 }
+            }.onFailure {
+                showError()
             }
-
-            override fun onFailure(call: Call<SearchResponse>, t: Throwable) {
-                if (!call.isCanceled) {
-                    showError()
-                }
-            }
-        })
+        }
     }
 
     private fun showLoading() {
@@ -279,6 +302,7 @@ class SearchActivity : AppCompatActivity() {
         errorLayout.visibility = View.GONE
         historyLayout.visibility = View.GONE
 
+        currentTracks = tracks
         searchAdapter.updateTracks(tracks)
     }
 
@@ -289,6 +313,7 @@ class SearchActivity : AppCompatActivity() {
         nothingFoundLayout.visibility = View.VISIBLE
         errorLayout.visibility = View.GONE
         historyLayout.visibility = View.GONE
+        currentTracks = emptyList()
 
         nothingFoundText.text = getString(R.string.nothing_found)
         updateNothingFoundView()
@@ -301,6 +326,7 @@ class SearchActivity : AppCompatActivity() {
         nothingFoundLayout.visibility = View.GONE
         errorLayout.visibility = View.VISIBLE
         historyLayout.visibility = View.GONE
+        currentTracks = emptyList()
 
         updateErrorView()
     }
@@ -354,32 +380,8 @@ class SearchActivity : AppCompatActivity() {
         searchEditText.clearFocus()
         updateHistoryVisibility()
         searchAdapter.updateTracks(emptyList())
+        currentTracks = emptyList()
 
-        currentSearchCall?.cancel()
         searchRunnable?.let { handler.removeCallbacks(it) }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (nothingFoundLayout.visibility == View.VISIBLE) {
-            updateNothingFoundView()
-        }
-        if (errorLayout.visibility == View.VISIBLE) {
-            updateErrorView()
-        }
-        updateHistoryVisibility()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString(SEARCH_QUERY_KEY, searchQuery)
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-        val savedSearchQuery = savedInstanceState.getString(SEARCH_QUERY_KEY, "")
-        searchEditText.setText(savedSearchQuery)
-        clearButton.visibility = if (savedSearchQuery.isEmpty()) View.GONE else View.VISIBLE
-        updateHistoryVisibility()
     }
 }
