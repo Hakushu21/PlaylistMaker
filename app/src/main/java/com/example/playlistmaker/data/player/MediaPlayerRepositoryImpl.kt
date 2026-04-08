@@ -1,12 +1,13 @@
 package com.example.playlistmaker.data.player
 
 import android.media.MediaPlayer
+import com.example.playlistmaker.domain.repository.PlayerRepository
 
-class MediaPlayerRepository {
+class MediaPlayerRepositoryImpl : PlayerRepository {
 
     private var mediaPlayer: MediaPlayer? = null
 
-    fun initializePlayer(url: String, onPrepared: () -> Unit, onCompletion: () -> Unit, onError: () -> Unit) {
+    override fun initializePlayer(url: String, onPrepared: () -> Unit, onCompletion: () -> Unit, onError: () -> Unit) {
         releasePlayer()
 
         try {
@@ -32,23 +33,19 @@ class MediaPlayerRepository {
         }
     }
 
-    fun start() {
+    override fun start() {
         mediaPlayer?.start()
     }
 
-    fun pause() {
+    override fun pause() {
         mediaPlayer?.pause()
     }
 
-    fun isPlaying(): Boolean = mediaPlayer?.isPlaying ?: false
+    override fun isPlaying(): Boolean = mediaPlayer?.isPlaying ?: false
 
-    fun getCurrentPosition(): Int = mediaPlayer?.currentPosition ?: 0
+    override fun getCurrentPosition(): Int = mediaPlayer?.currentPosition ?: 0
 
-    fun seekTo(position: Int) {
-        mediaPlayer?.seekTo(position)
-    }
-
-    fun releasePlayer() {
+    override fun releasePlayer() {
         mediaPlayer?.apply {
             if (isPlaying) {
                 stop()

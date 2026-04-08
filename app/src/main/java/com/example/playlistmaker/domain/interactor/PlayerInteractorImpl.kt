@@ -1,9 +1,9 @@
 package com.example.playlistmaker.domain.interactor
 
-import com.example.playlistmaker.data.player.MediaPlayerRepository
+import com.example.playlistmaker.domain.repository.PlayerRepository
 
 class PlayerInteractorImpl(
-    private val repository: MediaPlayerRepository
+    private val repository: PlayerRepository
 ) : PlayerInteractor {
 
     override fun initializePlayer(url: String, onPrepared: () -> Unit, onCompletion: () -> Unit, onError: () -> Unit) {

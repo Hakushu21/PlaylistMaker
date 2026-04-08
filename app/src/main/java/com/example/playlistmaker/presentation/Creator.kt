@@ -2,7 +2,7 @@ package com.example.playlistmaker.presentation
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.playlistmaker.data.player.MediaPlayerRepository
+import com.example.playlistmaker.data.player.MediaPlayerRepositoryImpl
 import com.example.playlistmaker.data.repository.TrackRepositoryImpl
 import com.example.playlistmaker.data.repository.ThemeRepositoryImpl
 import com.example.playlistmaker.data.storage.SearchHistoryStorage
@@ -12,6 +12,7 @@ import com.example.playlistmaker.domain.interactor.SearchInteractor
 import com.example.playlistmaker.domain.interactor.SearchInteractorImpl
 import com.example.playlistmaker.domain.interactor.ThemeInteractor
 import com.example.playlistmaker.domain.interactor.ThemeInteractorImpl
+import com.example.playlistmaker.domain.repository.PlayerRepository
 import com.example.playlistmaker.domain.repository.TrackRepository
 import com.example.playlistmaker.domain.repository.ThemeRepository
 import com.example.playlistmaker.presentation.ui.player.PlayerViewModelFactory
@@ -41,8 +42,8 @@ object Creator {
         ThemeRepositoryImpl(sharedPreferences)
     }
 
-    private val mediaPlayerRepository: MediaPlayerRepository by lazy {
-        MediaPlayerRepository()
+    private val playerRepository: PlayerRepository by lazy {
+        MediaPlayerRepositoryImpl()
     }
 
     private val searchInteractor: SearchInteractor by lazy {
@@ -54,7 +55,7 @@ object Creator {
     }
 
     private val playerInteractor: PlayerInteractor by lazy {
-        PlayerInteractorImpl(mediaPlayerRepository)
+        PlayerInteractorImpl(playerRepository)
     }
 
     fun provideSearchInteractor(): SearchInteractor = searchInteractor
