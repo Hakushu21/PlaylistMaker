@@ -55,6 +55,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.5")
     implementation("androidx.fragment:fragment-ktx:1.8.3")
 
+    implementation("io.insert-koin:koin-android:3.5.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

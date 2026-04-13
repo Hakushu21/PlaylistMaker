@@ -6,23 +6,19 @@ import android.os.Bundle
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModelProvider
 import com.example.playlistmaker.App
 import com.example.playlistmaker.R
-import com.example.playlistmaker.presentation.Creator
 import com.google.android.material.switchmaterial.SwitchMaterial
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SettingsActivity : AppCompatActivity() {
 
-    private lateinit var viewModel: SettingsViewModel
+    private val viewModel: SettingsViewModel by viewModel()
     private lateinit var themeSwitch: SwitchMaterial
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
-
-        val factory = Creator.provideSettingsViewModelFactory()
-        viewModel = ViewModelProvider(this, factory)[SettingsViewModel::class.java]
 
         setupBackButton()
         setupThemeSwitch()

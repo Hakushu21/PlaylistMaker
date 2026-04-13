@@ -17,21 +17,20 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.playlistmaker.R
 import com.example.playlistmaker.domain.models.Track
-import com.example.playlistmaker.presentation.Creator
 import com.example.playlistmaker.presentation.adapters.HistoryAdapter
 import com.example.playlistmaker.presentation.adapters.TrackAdapter
 import com.example.playlistmaker.presentation.ui.player.PlayerActivity
 import com.example.playlistmaker.presentation.ui.search.SearchScreenState.SearchState
 import com.google.android.material.button.MaterialButton
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SearchActivity : AppCompatActivity() {
 
-    private lateinit var viewModel: SearchViewModel
+    private val viewModel: SearchViewModel by viewModel()
 
     private lateinit var searchEditText: EditText
     private lateinit var clearButton: ImageView
@@ -64,7 +63,6 @@ class SearchActivity : AppCompatActivity() {
 
         setupWindowInsets()
         initViews()
-        setupViewModel()
         setupClickListeners()
         setupSearchField()
         setupRecyclerViews()
@@ -104,11 +102,6 @@ class SearchActivity : AppCompatActivity() {
         historyTitle = findViewById(R.id.history_title)
         historyRecyclerView = findViewById(R.id.history_recycler_view)
         historyLayout = findViewById(R.id.history_layout)
-    }
-
-    private fun setupViewModel() {
-        val factory = Creator.provideSearchViewModelFactory()
-        viewModel = ViewModelProvider(this, factory)[SearchViewModel::class.java]
     }
 
     private fun setupClickListeners() {
