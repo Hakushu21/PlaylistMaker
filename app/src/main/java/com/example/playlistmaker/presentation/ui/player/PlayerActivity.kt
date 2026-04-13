@@ -1,9 +1,7 @@
 package com.example.playlistmaker.presentation.ui.player
 
-import android.media.MediaPlayer
+import android.content.res.Configuration
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -12,15 +10,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
 import com.example.playlistmaker.R
 import com.example.playlistmaker.domain.models.Track
+import com.example.playlistmaker.presentation.Creator
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 class PlayerActivity : AppCompatActivity() {
+
+    private lateinit var viewModel: PlayerViewModel
 
     private lateinit var backButton: ImageButton
     private lateinit var artworkImageView: ImageView
@@ -41,13 +43,6 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var countryLabel: TextView
     private lateinit var currentTimeTextView: TextView
 
-    private var mediaPlayer: MediaPlayer? = null
-    private var isPlaying = false
-    private val handler = Handler(Looper.getMainLooper())
-    private var updateProgressRunnable: Runnable? = null
-
-    private var currentTrack: Track? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -55,19 +50,21 @@ class PlayerActivity : AppCompatActivity() {
 
         setupWindowInsets()
         initViews()
+        setupViewModel()
         setupClickListeners()
+        observeViewModel()
 
-        currentTrack = intent.getSerializableExtra("track") as? Track
-        currentTrack?.let {
+        val track = intent.getSerializableExtra("track") as? Track
+        track?.let {
             displayTrackInfo(it)
-            setupMediaPlayer(it.previewUrl)
+            viewModel.initTrack(it)
         }
     }
 
     private fun enableEdgeToEdge() {
         window.decorView.systemUiVisibility = (
-                android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                        android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 )
     }
 
@@ -102,149 +99,57 @@ class PlayerActivity : AppCompatActivity() {
         currentTimeTextView = findViewById(R.id.currentTimeTextView)
     }
 
+    private fun setupViewModel() {
+        val factory = Creator.providePlayerViewModelFactory()
+        viewModel = ViewModelProvider(this, factory)[PlayerViewModel::class.java]
+    }
+
     private fun setupClickListeners() {
         backButton.setOnClickListener {
-            releaseMediaPlayer()
-            finish()
+            viewModel.onBackPressed()
         }
 
         playPauseButton.setOnClickListener {
-            togglePlayPause()
+            viewModel.togglePlayPause()
+        }
+
+        addToPlaylistButton.setOnClickListener {
+            viewModel.onAddToPlaylistClicked()
+        }
+
+        favoriteButton.setOnClickListener {
+            viewModel.onFavoriteClicked()
         }
     }
 
-    private fun setupMediaPlayer(previewUrl: String?) {
-        if (previewUrl.isNullOrEmpty()) {
-            playPauseButton.isEnabled = false
-            return
-        }
+    private fun observeViewModel() {
+        viewModel.screenState.observe(this) { state ->
+            updatePlayButton(state.isPlaying, state.isPrepared)
+            updateCurrentTime(state.currentPosition)
 
-        try {
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(previewUrl)
-                prepareAsync()
-
-                setOnPreparedListener {
-                    playPauseButton.isEnabled = true
-                }
-
-                setOnCompletionListener {
-                    onPlaybackComplete()
-                }
-
-                setOnErrorListener { _, what, extra ->
-                    playPauseButton.isEnabled = false
-                    false
-                }
+            if (state.navigateBack) {
+                finish()
+                viewModel.onNavigateBackHandled()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            playPauseButton.isEnabled = false
         }
     }
 
-    private fun togglePlayPause() {
-        if (mediaPlayer == null) return
-
+    private fun updatePlayButton(isPlaying: Boolean, isPrepared: Boolean) {
+        playPauseButton.isEnabled = isPrepared
         if (isPlaying) {
-            pausePlayback()
+            playPauseButton.setImageResource(R.drawable.ic_pause_84)
+            trackDurationTextView.visibility = View.GONE
+            currentTimeTextView.visibility = View.VISIBLE
         } else {
-            startPlayback()
+            playPauseButton.setImageResource(R.drawable.ic_play_84)
+            trackDurationTextView.visibility = View.VISIBLE
+            currentTimeTextView.visibility = View.GONE
         }
-    }
-
-    private fun startPlayback() {
-        mediaPlayer?.apply {
-            if (!isPlaying) {
-                start()
-                this@PlayerActivity.isPlaying = true
-                playPauseButton.setImageResource(R.drawable.ic_pause_84)
-                showCurrentTime()
-                startProgressUpdate()
-            }
-        }
-    }
-
-    private fun pausePlayback() {
-        mediaPlayer?.apply {
-            if (isPlaying) {
-                pause()
-                this@PlayerActivity.isPlaying = false
-                playPauseButton.setImageResource(R.drawable.ic_play_84)
-                stopProgressUpdate()
-                showTotalDuration()
-            }
-        }
-    }
-
-    private fun onPlaybackComplete() {
-        isPlaying = false
-        playPauseButton.setImageResource(R.drawable.ic_play_84)
-        stopProgressUpdate()
-        showTotalDuration()
-
-        mediaPlayer?.apply {
-            seekTo(0)
-        }
-    }
-
-    private fun startProgressUpdate() {
-        updateProgressRunnable = object : Runnable {
-            override fun run() {
-                mediaPlayer?.let { player ->
-                    if (player.isPlaying) {
-                        val currentPosition = player.currentPosition
-                        updateCurrentTime(currentPosition)
-                        handler.postDelayed(this, 500)
-                    }
-                }
-            }
-        }
-        handler.post(updateProgressRunnable!!)
-    }
-
-    private fun stopProgressUpdate() {
-        updateProgressRunnable?.let { handler.removeCallbacks(it) }
-        updateProgressRunnable = null
     }
 
     private fun updateCurrentTime(positionMs: Int) {
         val formatter = SimpleDateFormat("mm:ss", Locale.getDefault())
         currentTimeTextView.text = formatter.format(positionMs)
-    }
-
-    private fun showCurrentTime() {
-        trackDurationTextView.visibility = View.GONE
-        currentTimeTextView.visibility = View.VISIBLE
-    }
-
-    private fun showTotalDuration() {
-        trackDurationTextView.visibility = View.VISIBLE
-        currentTimeTextView.visibility = View.GONE
-    }
-
-    private fun releaseMediaPlayer() {
-        stopProgressUpdate()
-        mediaPlayer?.apply {
-            if (isPlaying) {
-                stop()
-            }
-            release()
-        }
-        mediaPlayer = null
-        isPlaying = false
-    }
-
-    override fun onPause() {
-        super.onPause()
-        if (isPlaying) {
-            pausePlayback()
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        releaseMediaPlayer()
     }
 
     private fun displayTrackInfo(track: Track) {
@@ -254,8 +159,6 @@ class PlayerActivity : AppCompatActivity() {
         val formattedTime = track.getFormattedTime()
         trackDurationTextView.text = formattedTime
         durationValue.text = formattedTime
-
-        showTotalDuration()
 
         if (!track.collectionName.isNullOrEmpty()) {
             albumValue.text = track.collectionName
@@ -316,13 +219,18 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun isDarkThemeEnabled(): Boolean {
-        return when (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) {
-            android.content.res.Configuration.UI_MODE_NIGHT_YES -> true
+        return when (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
+            Configuration.UI_MODE_NIGHT_YES -> true
             else -> false
         }
     }
 
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        viewModel.onPause()
     }
 }

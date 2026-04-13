@@ -49,8 +49,11 @@ dependencies {
     implementation(libs.converter.gson)
 
     implementation("com.google.code.gson:gson:2.10.1")
-
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.5")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.5")
+    implementation("androidx.fragment:fragment-ktx:1.8.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
