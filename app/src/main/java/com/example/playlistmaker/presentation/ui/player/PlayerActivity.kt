@@ -10,19 +10,18 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
 import com.example.playlistmaker.R
 import com.example.playlistmaker.domain.models.Track
-import com.example.playlistmaker.presentation.Creator
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 class PlayerActivity : AppCompatActivity() {
 
-    private lateinit var viewModel: PlayerViewModel
+    private val viewModel: PlayerViewModel by viewModel()
 
     private lateinit var backButton: ImageButton
     private lateinit var artworkImageView: ImageView
@@ -50,7 +49,6 @@ class PlayerActivity : AppCompatActivity() {
 
         setupWindowInsets()
         initViews()
-        setupViewModel()
         setupClickListeners()
         observeViewModel()
 
@@ -97,11 +95,6 @@ class PlayerActivity : AppCompatActivity() {
         genreLabel = findViewById(R.id.genreLabel)
         countryLabel = findViewById(R.id.countryLabel)
         currentTimeTextView = findViewById(R.id.currentTimeTextView)
-    }
-
-    private fun setupViewModel() {
-        val factory = Creator.providePlayerViewModelFactory()
-        viewModel = ViewModelProvider(this, factory)[PlayerViewModel::class.java]
     }
 
     private fun setupClickListeners() {
